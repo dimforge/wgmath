@@ -10,7 +10,6 @@ license = "MIT OR Apache-2.0"
 
 [lib]
 name = "wgparry3d"
-path = "../../src/lib.rs"
 required-features = ["dim3"]
 
 [lints]
