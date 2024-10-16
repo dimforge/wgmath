@@ -1,0 +1,34 @@
+[package]
+name = "wgcore"
+authors = ["Sébastien Crozet <sebcrozet@dimforge.com>"]
+description = "Utilities and abstractions for composable WGSL shaders."
+homepage = "https://wgmath.rs"
+repository = "https://github.com/dimforge/wgmath"
+readme = "README.md"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[features]
+derive = ["wgcore-derive"]
+
+[dependencies]
+nalgebra = { workspace = true }
+wgpu = { workspace = true }
+bytemuck = { workspace = true }
+anyhow = { workspace = true }
+async-channel = { workspace = true }
+naga_oil = { workspace = true }
+encase = { workspace = true }
+
+wgcore-derive = { version = "0.1", path = "../wgcore-derive", optional = true }
+
+dashmap = "5"
+
+
+[dev-dependencies]
+nalgebra = { version = "0.33", features = ["rand"] }
+futures-test = "0.3"
+serial_test = "3"
+approx = "0.5"
+async-std = "1"

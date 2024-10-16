@@ -1,0 +1,20 @@
+[package]
+name = "wgcore-derive"
+authors = ["Sébastien Crozet <sebcrozet@dimforge.com>"]
+description = "Proc-macro for composable WGSL shaders."
+homepage = "https://wgmath.rs"
+repository = "https://github.com/dimforge/wgmath"
+version = "0.1.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[lib]
+name = "wgcore_derive"
+path = "src/lib.rs"
+proc-macro = true
+
+[dependencies]
+syn = "2.0.77"
+quote = "1.0.37"
+proc-macro2 = "1.0.86"
+darling = "0.20.10"
