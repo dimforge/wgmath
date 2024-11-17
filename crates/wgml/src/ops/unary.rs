@@ -1,5 +1,5 @@
 use bytemuck::Pod;
-use naga_oil::compose::NagaModuleDescriptor;
+use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
 use nalgebra::{Dyn, StorageMut, Vector, Vector4};
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
@@ -135,23 +135,21 @@ impl Unary {
     pub const SRC: &'static str = include_str!("unary.wgsl");
     pub const FILE_PATH: &'static str = "wgml/src/unary.wgsl";
 
-    pub fn new(device: &Device, op: UnaryOp) -> Self {
-        let module = Shape::composer()
-            .make_naga_module(NagaModuleDescriptor {
-                source: Self::SRC,
-                file_path: Self::FILE_PATH,
-                ..Default::default()
-            })
-            .unwrap();
+    pub fn new(device: &Device, op: UnaryOp) -> Result<Self, ComposerError> {
+        let module = Shape::composer()?.make_naga_module(NagaModuleDescriptor {
+            source: Self::SRC,
+            file_path: Self::FILE_PATH,
+            ..Default::default()
+        })?;
         let mut redirector = Redirector::new(module);
         redirector
             .redirect_function("placeholder", op.kernel_fn(), &Default::default())
             .unwrap();
 
-        Self(
+        Ok(Self(
             utils::load_module(device, "main", redirector.into_module().unwrap()),
             op,
-        )
+        ))
     }
 
     pub fn queue<'a, 'b, T: Pod + nalgebra::Scalar>(

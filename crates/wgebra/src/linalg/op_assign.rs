@@ -1,6 +1,6 @@
 use crate::linalg::shape::Shape;
 use bytemuck::Pod;
-use naga_oil::compose::NagaModuleDescriptor;
+use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
 use wgcore::tensor::GpuVectorView;
@@ -48,23 +48,21 @@ impl OpAssign {
     pub const FILE_PATH: &'static str = "wgebra/src/op_assign.wgsl";
 
     /// Creates the compute pipeline for the operation described by the given [`OpAssignVariant`].
-    pub fn new(device: &Device, op: OpAssignVariant) -> Self {
-        let module = Shape::composer()
-            .make_naga_module(NagaModuleDescriptor {
-                source: Self::SRC,
-                file_path: Self::FILE_PATH,
-                ..Default::default()
-            })
-            .unwrap();
+    pub fn new(device: &Device, op: OpAssignVariant) -> Result<Self, ComposerError> {
+        let module = Shape::composer()?.make_naga_module(NagaModuleDescriptor {
+            source: Self::SRC,
+            file_path: Self::FILE_PATH,
+            ..Default::default()
+        })?;
         let mut redirector = Redirector::new(module);
         redirector
             .redirect_function("placeholder", op.kernel_fn(), &Default::default())
             .unwrap();
 
-        OpAssign(
+        Ok(OpAssign(
             utils::load_module(device, "main", redirector.into_module().unwrap()),
             op,
-        )
+        ))
     }
 
     /// Queues the operation for computing `in_out_a ?= in_b` where `?` depends on the

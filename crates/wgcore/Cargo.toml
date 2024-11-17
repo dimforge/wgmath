@@ -11,6 +11,7 @@ license = "MIT OR Apache-2.0"
 
 [features]
 derive = ["wgcore-derive"]
+hot_reloading = [] # "notify"]
 
 [dependencies]
 nalgebra = { workspace = true }
@@ -24,6 +25,7 @@ encase = { workspace = true }
 wgcore-derive = { version = "0.1", path = "../wgcore-derive", optional = true }
 
 dashmap = "5"
+notify = { version = "7" } # , optional = true }
 
 
 [dev-dependencies]

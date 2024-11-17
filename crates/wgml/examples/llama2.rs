@@ -64,7 +64,7 @@ async fn main() {
 
     let gpu_weights = Llama2Weights::from_ram(gpu.device(), &weights);
     println!("Done creating gpu buffers.");
-    let gpu_transformer = Llama2::new(gpu.device());
+    let gpu_transformer = Llama2::new(gpu.device()).unwrap();
     let gpu_state = Llama2State::new(gpu.device(), &config);
 
     println!(
