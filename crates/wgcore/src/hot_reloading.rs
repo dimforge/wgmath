@@ -25,6 +25,8 @@ impl HotReloadState {
         let (snd, rcv) = async_channel::unbounded();
         Ok(Self {
             watcher: notify::recommended_watcher(move |msg| {
+                // TODO: does hot-reloading make sense on wasm anyway?
+                #[cfg(not(target_family = "wasm"))]
                 let _ = snd.send_blocking(msg);
             })?,
             rcv,
