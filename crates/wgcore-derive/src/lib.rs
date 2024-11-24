@@ -73,10 +73,20 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
 
             let shader_defs = derive_shaders.shader_defs.map(|defs| quote! { #defs() })
                 .unwrap_or_else(|| quote! { Default::default() });
-            let src_from_disk = derive_shaders.src_fn.as_ref().map(|f| quote! { #f(&std::fs::read_to_string(&Self::absolute_path().unwrap()).unwrap()) })
-                .unwrap_or_else(|| quote! { std::fs::read_to_string(&Self::absolute_path().unwrap()).unwrap() });
-            let src = derive_shaders.src_fn.map(|f| quote! { #f(include_str!(#src_path)) })
-                .unwrap_or_else(|| quote! { include_str!(#src_path).to_string() });
+            let raw_src = quote! {
+                // First try to find a path from the shader registry.
+                // If doesn’t exist in the registry, try the absolute path.
+                // If it doesn’t exist in the absolute path, load the embedded string.
+                if let Some(path) = Self::absolute_path() {
+                    // TODO: handle error
+                    std::fs::read_to_string(path).unwrap()
+                } else {
+                    include_str!(#src_path).to_string()
+                }
+            };
+
+            let src = derive_shaders.src_fn.map(|f| quote! { #f(&#raw_src) })
+                .unwrap_or_else(|| quote! { #raw_src });
             let naga_module = quote! {
                 Self::composer().and_then(|mut c|
                     c.make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
@@ -91,27 +101,6 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
             let from_device = if !kernels_to_build.is_empty() {
                 quote! {
                     let module = #naga_module?;
-                    Ok(Self {
-                        #(
-                            #kernels_to_build
-                        )*
-                    })
-                }
-            } else {
-                quote ! {
-                    Ok(Self)
-                }
-            };
-
-            let from_disk = if !kernels_to_build.is_empty() {
-                quote! {
-                    let module = Self::composer_from_disk()?
-                        .make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
-                            source: &Self::src_from_disk(),
-                            file_path: Self::FILE_PATH,
-                            shader_defs: #shader_defs,
-                            ..Default::default()
-                        })?;
                     Ok(Self {
                         #(
                             #kernels_to_build
@@ -142,7 +131,6 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                         #from_device
                     }
 
-                    // TODO: could we avoid the String allocation here?
                     fn src() -> String {
                         #src
                     }
@@ -152,14 +140,18 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                     }
 
                     fn absolute_path() -> Option<std::path::PathBuf> {
-                        // NOTE: this is a bit fragile, and won’t work if the current working directory
-                        //       isn’t the root of the workspace the binary crate is being run from.
-                        //       Ideally we need `proc_macro2::Span::source_file` but it is currently unstable.
-                        //       See: https://users.rust-lang.org/t/how-to-get-the-macro-called-file-path-in-a-rust-procedural-macro/109613/5
-                        std::path::Path::new(file!())
-                            .parent()?
-                            .join(Self::FILE_PATH)
-                            .canonicalize().ok()
+                        if let Some(path) = wgcore::ShaderRegistry::get().get_path::<#struct_identifier>() {
+                            Some(path.clone())
+                        } else {
+                            // NOTE: this is a bit fragile, and won’t work if the current working directory
+                            //       isn’t the root of the workspace the binary crate is being run from.
+                            //       Ideally we need `proc_macro2::Span::source_file` but it is currently unstable.
+                            //       See: https://users.rust-lang.org/t/how-to-get-the-macro-called-file-path-in-a-rust-procedural-macro/109613/5
+                            std::path::Path::new(file!())
+                                .parent()?
+                                .join(Self::FILE_PATH)
+                                .canonicalize().ok()
+                        }
                     }
 
                     fn compose(composer: &mut wgcore::re_exports::Composer) -> Result<(), wgcore::re_exports::ComposerError> {
@@ -184,14 +176,6 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                     /*
                      * Hot reloading.
                      */
-                    fn from_disk(device: &wgpu::Device) -> Result<Self, wgcore::re_exports::ComposerError> {
-                        #from_disk
-                    }
-
-                    fn src_from_disk() -> String {
-                        #src_from_disk
-                    }
-
                     fn watch_sources(state: &mut wgcore::hot_reloading::HotReloadState) -> wgcore::re_exports::notify::Result<()> {
                         #(
                             #to_derive::watch_sources(state)?;
@@ -214,27 +198,6 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                         Self::absolute_path()
                             .map(|path| state.file_changed(&path))
                             .unwrap_or_default()
-                    }
-
-                    fn compose_from_disk(
-                        composer: &mut wgcore::re_exports::Composer,
-                    ) -> Result<(), wgcore::re_exports::ComposerError> {
-                        use wgcore::composer::ComposerExt;
-                        #(
-                            #to_derive::compose_from_disk(composer)?;
-                        )*
-
-                        if #composable {
-                            composer
-                                .add_composable_module_once(wgcore::re_exports::ComposableModuleDescriptor {
-                                    source: &Self::src_from_disk(),
-                                    file_path: Self::FILE_PATH,
-                                    shader_defs: #shader_defs,
-                                    ..Default::default()
-                                })?;
-                        }
-
-                        Ok(())
                     }
                 }
             }
