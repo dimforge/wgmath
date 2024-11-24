@@ -10,6 +10,7 @@ use crate::Shader;
 
 /// State for tracking file changes.
 pub struct HotReloadState {
+    #[cfg(not(target_family = "wasm"))]
     watcher: RecommendedWatcher,
     rcv: Receiver<notify::Result<Event>>,
     file_changed: HashMap<PathBuf, bool>,
@@ -24,9 +25,9 @@ impl HotReloadState {
     pub fn new() -> notify::Result<Self> {
         let (snd, rcv) = async_channel::unbounded();
         Ok(Self {
+            #[cfg(not(target_family = "wasm"))]
             watcher: notify::recommended_watcher(move |msg| {
                 // TODO: does hot-reloading make sense on wasm anyway?
-                #[cfg(not(target_family = "wasm"))]
                 let _ = snd.send_blocking(msg);
             })?,
             rcv,
@@ -58,6 +59,7 @@ impl HotReloadState {
 
     /// Registers a files for change-tracking.
     pub fn watch_file(&mut self, path: &Path) -> notify::Result<()> {
+        #[cfg(not(target_family = "wasm"))]
         if !self.file_changed.contains_key(path) {
             self.watcher.watch(path, RecursiveMode::NonRecursive)?;
             // NOTE: this won’t insert if the watch failed.
