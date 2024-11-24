@@ -4,7 +4,7 @@ authors = ["Sébastien Crozet <sebcrozet@dimforge.com>"]
 description = "Cross-platform 2D rigid-body physics."
 homepage = "https://wgmath.rs"
 repository = "https://github.com/dimforge/wgmath"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
@@ -29,9 +29,9 @@ naga_oil = { workspace = true }
 bytemuck = { workspace = true }
 encase = { workspace = true }
 
-wgcore = { version = "0.1", path = "../../../wgcore" }
-wgebra = { version = "0.1", path = "../../../wgebra" }
-wgparry2d = { version = "0.1", path = "../../../wgparry/crates/wgparry2d" }
+wgcore = { version = "0.2", path = "../../../wgcore" }
+wgebra = { version = "0.2", path = "../../../wgebra" }
+wgparry2d = { version = "0.2", path = "../../../wgparry/crates/wgparry2d" }
 
 
 [dev-dependencies]
