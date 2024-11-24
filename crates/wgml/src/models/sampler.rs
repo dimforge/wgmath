@@ -29,10 +29,7 @@ impl Sampler {
     }
 
     // Sample the token given the logits and some hyperparameters.
-    pub fn sample<S: StorageMut<f32, Dyn>>(
-        &mut self,
-        mut logits: &mut Vector<f32, Dyn, S>,
-    ) -> usize {
+    pub fn sample<S: StorageMut<f32, Dyn>>(&mut self, logits: &mut Vector<f32, Dyn, S>) -> usize {
         if self.temperature == 0.0 {
             // Greedy argmax sampling: take the token with the highest probability.
             Self::sample_argmax(logits)
@@ -41,7 +38,7 @@ impl Sampler {
             *logits /= self.temperature;
 
             // Apply softmax to the logits to get probabilities for next token.
-            SoftMax::run_cpu(&mut logits);
+            SoftMax::run_cpu(logits);
             let coin = random();
 
             if self.topp <= 0.0 || self.topp >= 1.0 {
@@ -75,7 +72,7 @@ impl Sampler {
             }
         }
 
-        return probabilities.len() - 1;
+        probabilities.len() - 1
     }
 
     /// Top-p sampling (or "nucleus sampling") samples from the smallest set of tokens
@@ -129,6 +126,6 @@ impl Sampler {
             }
         }
 
-        return self.prob_index[last_idx].index; // In case of rounding errors.
+        self.prob_index[last_idx].index // In case of rounding errors.
     }
 }

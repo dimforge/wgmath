@@ -106,7 +106,7 @@ impl Tokenizer {
     pub fn decode(&self, tokens: &[u32]) -> String {
         let text: Vec<String> = tokens
             .iter()
-            .filter_map(|&token| self.decoder.get(&(token as u64)).map(|s| s.clone()))
+            .filter_map(|&token| self.decoder.get(&(token as u64)).cloned())
             .collect();
         let decoded: String = text
             .join("")
@@ -133,7 +133,7 @@ impl Tokenizer {
 
             if let Some((first, second)) = bigram {
                 let mut new_word = Vec::new();
-                if self.merges.get(&(first.clone(), second.clone())).is_none() {
+                if !self.merges.contains_key(&(first.clone(), second.clone())) {
                     break;
                 }
                 let mut i = 0;

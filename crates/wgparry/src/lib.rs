@@ -25,7 +25,7 @@ pub fn dim_shader_defs() -> HashMap<String, ShaderDefValue> {
 ///
 /// Substituted aliases include:
 /// - `Transform = Pose::Sim2/3`
-/// / `Vector = vec2/3<f32>`
+/// - `Vector = vec2/3<f32>`
 pub fn substitute_aliases(src: &str) -> String {
     #[cfg(feature = "dim2")]
     return src

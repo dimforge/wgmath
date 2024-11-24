@@ -70,7 +70,7 @@ async fn main() {
     println!("Creating gpu buffers.");
     let t_gpu_buf = Instant::now();
     let gpu_weights = Gpt2Weights::from_ram(gpu.device(), &gpt_data);
-    let gpu_transformer = Gpt2::new(gpu.device());
+    let gpu_transformer = Gpt2::new(gpu.device()).unwrap();
     let gpu_state = Gpt2State::new(gpu.device(), &config);
     println!(
         "Done creating gpu buffers: {}",

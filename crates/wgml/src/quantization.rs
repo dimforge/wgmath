@@ -2,6 +2,9 @@
 //!
 //! This is inspired heavily from [ggml-common.h](https://github.com/ggerganov/ggml/blob/a3c0188a4b5d3dec052ff87c9f773baa53631d70/src/ggml-common.h#L144).
 
+#![allow(clippy::identity_op)]
+#![allow(clippy::explicit_counter_loop)]
+
 #[derive(bytemuck::Pod, bytemuck::Zeroable, Copy, Clone, Debug)]
 #[repr(C)]
 /// A single `f16` value.
@@ -348,9 +351,9 @@ pub fn decode_f16(half: u16) -> f32 {
     } else if exp != 31 {
         (mant as f32 + 1024f32) * (2.0f32).powi(exp as i32 - 25)
     } else if mant == 0 {
-        ::std::f32::INFINITY
+        f32::INFINITY
     } else {
-        ::std::f32::NAN
+        f32::NAN
     };
     if half & 0x8000 != 0 {
         -val

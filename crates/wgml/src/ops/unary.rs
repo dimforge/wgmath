@@ -104,12 +104,12 @@ impl UnaryOp {
             }
             Self::Gelu => {
                 const GELU_COEF_A: f32 = 0.044715;
-                const SQRT_2_OVER_PI: f32 = 0.79788456080286535587989211986876;
-                return 0.5 * x * (1.0 + (SQRT_2_OVER_PI * x * (1.0 + GELU_COEF_A * x * x)).tanh());
+                const SQRT_2_OVER_PI: f32 = 0.7978846;
+                0.5 * x * (1.0 + (SQRT_2_OVER_PI * x * (1.0 + GELU_COEF_A * x * x)).tanh())
             }
             Self::GeluQuick => {
                 const GELU_QUICK_COEF: f32 = -1.702;
-                return x * (1.0 / (1.0 + (GELU_QUICK_COEF * x).exp()));
+                x * (1.0 / (1.0 + (GELU_QUICK_COEF * x).exp()))
             }
             Self::Silu => x / (1.0 + (-x).exp()),
             Self::Tanh => x.tanh(),

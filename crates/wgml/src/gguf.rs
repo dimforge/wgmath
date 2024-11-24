@@ -138,6 +138,12 @@ pub enum GgufMetadataValueArray {
 }
 
 impl GgufMetadataValueArray {
+    /// Is this array empty?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The number of elements in this array.
     pub fn len(&self) -> usize {
         match self {
             Self::U8(v) => v.len(),
@@ -193,7 +199,7 @@ impl GgufMetadataValue {
 
     pub fn as_string_array(&self) -> &[String] {
         if let Self::Array(GgufMetadataValueArray::String(val)) = self {
-            &val
+            val
         } else {
             panic!("unwrap: nexpected GGUF attribute type.")
         }
@@ -201,7 +207,7 @@ impl GgufMetadataValue {
 
     pub fn as_f32_array(&self) -> &[f32] {
         if let Self::Array(GgufMetadataValueArray::F32(val)) = self {
-            &val
+            val
         } else {
             panic!("unwrap: nexpected GGUF attribute type.")
         }

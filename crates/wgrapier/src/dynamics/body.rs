@@ -92,6 +92,11 @@ impl Default for BodyDesc {
 }
 
 impl GpuBodySet {
+    /// Is this set empty?
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Number of rigid-bodies in this set.
     pub fn len(&self) -> u32 {
         self.len
