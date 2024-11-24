@@ -15,7 +15,7 @@ hot_reloading = [] # "notify"]
 
 [dependencies]
 nalgebra = { workspace = true }
-wgpu = { workspace = true }
+wgpu = { workspace = true, features = ["wgsl"] }
 bytemuck = { workspace = true }
 anyhow = { workspace = true }
 async-channel = { workspace = true }

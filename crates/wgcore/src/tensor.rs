@@ -150,6 +150,10 @@ pub struct GpuTensor<T, const DIM: usize> {
 }
 
 impl<T, const DIM: usize> GpuTensor<T, DIM> {
+    /// Does this tensor contain zero elements?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     /// The number of elements in this tensor.
     pub fn len(&self) -> u64 {
         self.shape.into_iter().map(|s| s as u64).product()
@@ -166,7 +170,7 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
     /// Queues a buffer-to-buffer copy from `source` to `self`.
     ///
     /// Panics if the lengths do not match.
-    pub fn copy_from<'a>(&self, encoder: &mut CommandEncoder, source: &GpuTensor<T, DIM>)
+    pub fn copy_from(&self, encoder: &mut CommandEncoder, source: &GpuTensor<T, DIM>)
     where
         T: Pod,
     {
@@ -247,18 +251,18 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
     }
 }
 
-impl<'a, T, const DIM: usize> Into<GpuTensorView<'a, T, DIM>> for &'a GpuTensor<T, DIM> {
-    fn into(self) -> GpuTensorView<'a, T, DIM> {
+impl<'a, T, const DIM: usize> From<&'a GpuTensor<T, DIM>> for GpuTensorView<'a, T, DIM> {
+    fn from(val: &'a GpuTensor<T, DIM>) -> Self {
         let mut size = [1; 2];
         let mut stride = 0;
 
         if DIM >= 1 {
-            size[0] = self.shape[0];
+            size[0] = val.shape[0];
         }
 
         if DIM >= 2 {
-            stride = self.shape[0];
-            size[1] = self.shape[1];
+            stride = val.shape[0];
+            size[1] = val.shape[1];
         }
 
         GpuTensorView {
@@ -267,7 +271,7 @@ impl<'a, T, const DIM: usize> Into<GpuTensorView<'a, T, DIM>> for &'a GpuTensor<
                 stride,
                 offset: 0,
             },
-            buffer: &self.buffer,
+            buffer: &val.buffer,
             phantom: PhantomData,
         }
     }
@@ -297,6 +301,11 @@ impl<'a, T, const DIM: usize> GpuTensorView<'a, T, DIM> {
 }
 
 impl<'a, T> GpuVectorView<'a, T> {
+    /// Is this view empty?
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// The number of elements in this vector view.
     pub fn len(&self) -> u32 {
         self.view_shape.size[0]
@@ -322,7 +331,7 @@ impl<T> GpuMatrix<T> {
         T: Pod + nalgebra::Scalar,
     {
         TensorBuilder::matrix(matrix.nrows() as u32, matrix.ncols() as u32, usage)
-            .build_init(device, &matrix.as_slice())
+            .build_init(device, matrix.as_slice())
     }
 
     /// Takes a view over the `i`-th column of `self`.
@@ -348,7 +357,7 @@ impl<T> GpuVector<T> {
         T: ShaderType + ShaderSize + WriteInto,
     {
         let vector = vector.as_ref();
-        TensorBuilder::vector(vector.len() as u32, usage).build_encase(device, &vector)
+        TensorBuilder::vector(vector.len() as u32, usage).build_encase(device, vector)
     }
 
     /// Allocates a new uninitialized vector on the gpu for `len` elements of type `T`.

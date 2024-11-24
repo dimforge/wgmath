@@ -77,16 +77,20 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                 .unwrap_or_else(|| quote! { std::fs::read_to_string(&Self::absolute_path().unwrap()).unwrap() });
             let src = derive_shaders.src_fn.map(|f| quote! { #f(include_str!(#src_path)) })
                 .unwrap_or_else(|| quote! { include_str!(#src_path).to_string() });
+            let naga_module = quote! {
+                Self::composer().and_then(|mut c|
+                    c.make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
+                        source: &Self::src(),
+                        file_path: Self::FILE_PATH,
+                        shader_defs: #shader_defs,
+                        ..Default::default()
+                    })
+                )
+            };
 
             let from_device = if !kernels_to_build.is_empty() {
                 quote! {
-                    let module = Self::composer()?
-                        .make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
-                            source: &Self::src(),
-                            file_path: Self::FILE_PATH,
-                            shader_defs: #shader_defs,
-                            ..Default::default()
-                        })?;
+                    let module = #naga_module?;
                     Ok(Self {
                         #(
                             #kernels_to_build
@@ -141,6 +145,10 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                     // TODO: could we avoid the String allocation here?
                     fn src() -> String {
                         #src
+                    }
+
+                    fn naga_module() -> Result<wgcore::re_exports::wgpu::naga::Module, wgcore::re_exports::ComposerError> {
+                        #naga_module
                     }
 
                     fn absolute_path() -> Option<std::path::PathBuf> {

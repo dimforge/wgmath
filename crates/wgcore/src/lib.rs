@@ -13,7 +13,7 @@ pub mod utils;
 
 pub use bytemuck::Pod;
 
-pub use shader::Shader;
+pub use shader::{Shader, ShaderRegistry};
 #[cfg(feature = "derive")]
 pub use wgcore_derive::*;
 

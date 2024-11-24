@@ -21,6 +21,7 @@ pub struct ViewShape {
 ///
 /// Ideally, we should use push-constants for view shapes. Unfortunately, push-constants is an
 /// optional extension, so we have to emulate them with uniforms for maximum portability.
+#[derive(Default)]
 pub struct ViewShapeBuffers {
     buffers: DashMap<ViewShape, Arc<Buffer>>,
 }
@@ -36,7 +37,7 @@ impl ViewShapeBuffers {
     /// Gets of insert the gpu uniform storage `Buffer` containing the value of `shape`.
     pub fn get(&self, device: &Device, shape: ViewShape) -> Arc<Buffer> {
         self.buffers
-            .entry(shape.into())
+            .entry(shape)
             .or_insert_with(|| {
                 Arc::new(device.create_buffer_init(&BufferInitDescriptor {
                     label: None,
