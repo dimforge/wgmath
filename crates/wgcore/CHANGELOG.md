@@ -1,3 +1,9 @@
+## v0.2.2
+
+### Fixed
+
+- Fix crash in `HotReloadState` when targetting wasm.
+
 ## v0.2.1
 
 ### Fixed
