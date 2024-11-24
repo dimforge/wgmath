@@ -1,3 +1,9 @@
+## v0.2.1
+
+### Fixed
+
+- Fix build when targeting wasm.
+
 ## v0.2.0
 
 ### Added

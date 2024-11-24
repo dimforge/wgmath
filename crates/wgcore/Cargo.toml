@@ -5,7 +5,7 @@ description = "Utilities and abstractions for composable WGSL shaders."
 homepage = "https://wgmath.rs"
 repository = "https://github.com/dimforge/wgmath"
 readme = "README.md"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
