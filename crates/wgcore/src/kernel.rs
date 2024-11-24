@@ -163,7 +163,7 @@ impl<'a> KernelInvocation<'a> {
                 pass.dispatch_workgroups(workgroups[0], workgroups[1], workgroups[2]);
             }
             Workgroups::Indirect(workgroups) => {
-                pass.dispatch_workgroups_indirect(&workgroups, 0);
+                pass.dispatch_workgroups_indirect(workgroups, 0);
             }
         }
     }
@@ -210,7 +210,7 @@ impl<'a> KernelInvocationQueue<'a> {
 
     /// The underlying wgpu device.
     pub fn device(&self) -> &Device {
-        &self.device
+        self.device
     }
 
     /// Gets or inits a uniform storage buffer containing a single [`ViewShape`] value equal to
@@ -218,7 +218,7 @@ impl<'a> KernelInvocationQueue<'a> {
     ///
     /// Calling this method multiple times with the same `shape` will return the same buffer.
     pub fn shape_buffer(&self, shape: ViewShape) -> Arc<Buffer> {
-        self.shapes.get(&self.device, shape)
+        self.shapes.get(self.device, shape)
     }
 
     /// Queues a kernel dispatch.

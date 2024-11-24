@@ -1,4 +1,3 @@
-use crate::ops::BatchedMultiqueryAttention;
 use bytemuck::Pod;
 use nalgebra::{vector, DVector, DVectorViewMut, Rotation2};
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};

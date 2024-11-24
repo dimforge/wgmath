@@ -3,6 +3,7 @@
 
 pub mod composer;
 pub mod gpu;
+pub mod hot_reloading;
 pub mod kernel;
 pub mod shader;
 pub mod shapes;
@@ -12,7 +13,7 @@ pub mod utils;
 
 pub use bytemuck::Pod;
 
-pub use shader::Shader;
+pub use shader::{Shader, ShaderRegistry};
 #[cfg(feature = "derive")]
 pub use wgcore_derive::*;
 
@@ -22,8 +23,9 @@ pub mod re_exports {
     pub use encase;
     pub use naga_oil::{
         self,
-        compose::{ComposableModuleDescriptor, Composer, NagaModuleDescriptor},
+        compose::{ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor},
     };
+    pub use notify;
     pub use wgpu::{self, Device};
 }
 

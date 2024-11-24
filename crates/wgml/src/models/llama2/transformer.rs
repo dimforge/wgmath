@@ -2,6 +2,7 @@ use crate::models::llama2::cpu::{Llama2Config, TransformerWeights};
 use crate::ops::{
     BatchedMultiqueryAttention, BatchedMultiqueryAttentionParams, RmsNorm, RoPE, RoPEShape, Silu,
 };
+use naga_oil::compose::ComposerError;
 use wgcore::kernel::KernelInvocationQueue;
 use wgcore::tensor::{GpuMatrix, GpuScalar, GpuVector};
 use wgcore::Shader;
@@ -153,15 +154,15 @@ pub struct Llama2 {
 }
 
 impl Llama2 {
-    pub fn new(device: &Device) -> Self {
-        Self {
-            attn: BatchedMultiqueryAttention::from_device(device),
-            rms_norm: RmsNorm::from_device(device),
-            rope: RoPE::from_device(device),
-            silu: Silu::from_device(device),
-            matmul: Gemv::from_device(device),
-            add_assign: OpAssign::new(device, OpAssignVariant::Add),
-        }
+    pub fn new(device: &Device) -> Result<Self, ComposerError> {
+        Ok(Self {
+            attn: BatchedMultiqueryAttention::from_device(device)?,
+            rms_norm: RmsNorm::from_device(device)?,
+            rope: RoPE::from_device(device)?,
+            silu: Silu::from_device(device)?,
+            matmul: Gemv::from_device(device)?,
+            add_assign: OpAssign::new(device, OpAssignVariant::Add)?,
+        })
     }
 
     pub fn queue<'a>(

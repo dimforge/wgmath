@@ -37,7 +37,7 @@ impl Silu {
             x / (1.0 + (-beta * x).exp())
         }
 
-        h1.zip_apply(&h2, |h, h2| *h = h2 * swish(*h, 1.0));
+        h1.zip_apply(h2, |h, h2| *h = h2 * swish(*h, 1.0));
     }
 }
 

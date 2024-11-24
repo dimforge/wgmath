@@ -33,7 +33,7 @@ pub struct BatchedMultiqueryAttentionParams {
 }
 
 impl BatchedMultiqueryAttention {
-    pub fn queue<'a, 'b, T: Pod>(
+    pub fn queue<'a, T: Pod>(
         &'a self,
         queue: &mut KernelInvocationQueue<'a>,
         params: &GpuScalar<BatchedMultiqueryAttentionParams>,

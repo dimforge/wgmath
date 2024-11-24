@@ -19,6 +19,10 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/wgsparkl/crates/wgsparkl-testbed2d/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/wgcore-derive/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/wgcore/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgparry/crates/wgparry2d/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgparry/crates/wgparry3d/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgrapier/crates/wgrapier2d/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgrapier/crates/wgrapier3d/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

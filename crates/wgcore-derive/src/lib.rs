@@ -73,28 +73,43 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
 
             let shader_defs = derive_shaders.shader_defs.map(|defs| quote! { #defs() })
                 .unwrap_or_else(|| quote! { Default::default() });
-            let src = derive_shaders.src_fn.map(|f| quote! { #f(include_str!(#src_path)) })
-                .unwrap_or_else(|| quote! { include_str!(#src_path).to_string() });
+            let raw_src = quote! {
+                // First try to find a path from the shader registry.
+                // If doesn’t exist in the registry, try the absolute path.
+                // If it doesn’t exist in the absolute path, load the embedded string.
+                if let Some(path) = Self::absolute_path() {
+                    // TODO: handle error
+                    std::fs::read_to_string(path).unwrap()
+                } else {
+                    include_str!(#src_path).to_string()
+                }
+            };
+
+            let src = derive_shaders.src_fn.map(|f| quote! { #f(&#raw_src) })
+                .unwrap_or_else(|| quote! { #raw_src });
+            let naga_module = quote! {
+                Self::composer().and_then(|mut c|
+                    c.make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
+                        source: &Self::src(),
+                        file_path: Self::FILE_PATH,
+                        shader_defs: #shader_defs,
+                        ..Default::default()
+                    })
+                )
+            };
 
             let from_device = if !kernels_to_build.is_empty() {
                 quote! {
-                    let module = Self::composer()
-                        .make_naga_module(wgcore::re_exports::naga_oil::compose::NagaModuleDescriptor {
-                            source: &Self::src(),
-                            file_path: Self::FILE_PATH,
-                            shader_defs: #shader_defs,
-                            ..Default::default()
-                        })
-                        .unwrap();
-                    Self {
+                    let module = #naga_module?;
+                    Ok(Self {
                         #(
                             #kernels_to_build
                         )*
-                    }
+                    })
                 }
             } else {
                 quote ! {
-                    Self
+                    Ok(Self)
                 }
             };
 
@@ -112,19 +127,37 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                 impl wgcore::shader::Shader for #struct_identifier {
                     const FILE_PATH: &'static str = #src_path;
 
-                    fn from_device(device: &wgcore::re_exports::Device) -> Self {
+                    fn from_device(device: &wgcore::re_exports::Device) -> Result<Self, wgcore::re_exports::ComposerError> {
                         #from_device
                     }
 
-                    // TODO: could we avoid the String allocation here?
                     fn src() -> String {
                         #src
                     }
 
-                    fn compose(composer: &mut wgcore::re_exports::Composer) -> &mut wgcore::re_exports::Composer {
+                    fn naga_module() -> Result<wgcore::re_exports::wgpu::naga::Module, wgcore::re_exports::ComposerError> {
+                        #naga_module
+                    }
+
+                    fn absolute_path() -> Option<std::path::PathBuf> {
+                        if let Some(path) = wgcore::ShaderRegistry::get().get_path::<#struct_identifier>() {
+                            Some(path.clone())
+                        } else {
+                            // NOTE: this is a bit fragile, and won’t work if the current working directory
+                            //       isn’t the root of the workspace the binary crate is being run from.
+                            //       Ideally we need `proc_macro2::Span::source_file` but it is currently unstable.
+                            //       See: https://users.rust-lang.org/t/how-to-get-the-macro-called-file-path-in-a-rust-procedural-macro/109613/5
+                            std::path::Path::new(file!())
+                                .parent()?
+                                .join(Self::FILE_PATH)
+                                .canonicalize().ok()
+                        }
+                    }
+
+                    fn compose(composer: &mut wgcore::re_exports::Composer) -> Result<(), wgcore::re_exports::ComposerError> {
                         use wgcore::composer::ComposerExt;
                         #(
-                            #to_derive::compose(composer);
+                            #to_derive::compose(composer)?;
                         )*
 
                         if #composable {
@@ -134,10 +167,37 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                                     file_path: Self::FILE_PATH,
                                     shader_defs: #shader_defs,
                                     ..Default::default()
-                                })
-                                .unwrap();
+                                })?;
                         }
-                        composer
+
+                        Ok(())
+                    }
+
+                    /*
+                     * Hot reloading.
+                     */
+                    fn watch_sources(state: &mut wgcore::hot_reloading::HotReloadState) -> wgcore::re_exports::notify::Result<()> {
+                        #(
+                            #to_derive::watch_sources(state)?;
+                        )*
+
+                        if let Some(path) = Self::absolute_path() {
+                            state.watch_file(&path)?;
+                        }
+
+                        Ok(())
+                    }
+
+                    fn needs_reload(state: &wgcore::hot_reloading::HotReloadState) -> bool {
+                        #(
+                            if #to_derive::needs_reload(state) {
+                                return true;
+                            }
+                        )*
+
+                        Self::absolute_path()
+                            .map(|path| state.file_changed(&path))
+                            .unwrap_or_default()
                     }
                 }
             }

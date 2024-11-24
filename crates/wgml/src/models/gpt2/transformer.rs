@@ -2,6 +2,7 @@ use crate::models::gpt2::cpu::{Gpt2Model, Gpt2Params};
 use crate::ops::{
     BatchedMultiqueryAttention, BatchedMultiqueryAttentionParams, LayerNorm, Unary, UnaryOp,
 };
+use naga_oil::compose::ComposerError;
 use wgcore::kernel::KernelInvocationQueue;
 use wgcore::tensor::{GpuMatrix, GpuScalar, GpuVector};
 use wgcore::Shader;
@@ -149,16 +150,16 @@ pub struct Gpt2 {
 }
 
 impl Gpt2 {
-    pub fn new(device: &Device) -> Self {
-        Self {
-            layernorm: LayerNorm::from_device(device),
-            gelu: Unary::new(device, UnaryOp::Gelu),
-            matmul: Gemv::from_device(device),
-            attn: BatchedMultiqueryAttention::from_device(device),
-            copy_from: OpAssign::new(device, OpAssignVariant::Copy),
-            mul_assign: OpAssign::new(device, OpAssignVariant::Mul),
-            add_assign: OpAssign::new(device, OpAssignVariant::Add),
-        }
+    pub fn new(device: &Device) -> Result<Self, ComposerError> {
+        Ok(Self {
+            layernorm: LayerNorm::from_device(device)?,
+            gelu: Unary::new(device, UnaryOp::Gelu)?,
+            matmul: Gemv::from_device(device)?,
+            attn: BatchedMultiqueryAttention::from_device(device)?,
+            copy_from: OpAssign::new(device, OpAssignVariant::Copy)?,
+            mul_assign: OpAssign::new(device, OpAssignVariant::Mul)?,
+            add_assign: OpAssign::new(device, OpAssignVariant::Add)?,
+        })
     }
 
     pub fn queue<'a>(

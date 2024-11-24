@@ -89,7 +89,7 @@ impl From<RawConfig> for Llama2Config {
             n_layers: c.n_layers as usize,
             n_q_heads: c.n_q_heads as usize,
             n_kv_heads: c.n_kv_heads as usize,
-            vocab_size: c.vocab_size.abs() as usize,
+            vocab_size: c.vocab_size.unsigned_abs() as usize,
             seq_len: c.seq_len as usize,
             shared_weights: c.vocab_size > 0,
         }

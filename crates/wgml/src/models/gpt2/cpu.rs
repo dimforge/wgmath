@@ -35,7 +35,7 @@ pub struct Gpt2Params {
 impl Gpt2Params {
     pub fn from_gguf(gguf: &Gguf) -> Self {
         Self {
-            n_vocab: gguf.metadata["tokenizer.ggml.tokens"].unwrap_array_len() as usize,
+            n_vocab: gguf.metadata["tokenizer.ggml.tokens"].unwrap_array_len(),
             n_seq: gguf.metadata["gpt2.context_length"].unwrap_u32() as usize,
             n_embd: gguf.metadata["gpt2.embedding_length"].unwrap_u32() as usize,
             n_head: gguf.metadata["gpt2.attention.head_count"].unwrap_u32() as usize,
@@ -203,13 +203,13 @@ impl Gpt2Model {
             layers,
             lm_head,
             memory_q: DVector::zeros(params.n_embd),
-            memory_att: DMatrix::zeros(params.n_seq as usize, params.n_head as usize),
+            memory_att: DMatrix::zeros(params.n_seq, params.n_head),
             layer_input: DVector::zeros(params.n_embd),
             curr_768: DVector::zeros(params.n_embd),
             curr_768_b: DVector::zeros(params.n_embd),
             curr_2304: DVector::zeros(params.attn_b),
             curr_3072: DVector::zeros(params.ff_len),
-            curr_vocab: DVector::zeros(params.n_vocab as usize),
+            curr_vocab: DVector::zeros(params.n_vocab),
         };
 
         (model, params)

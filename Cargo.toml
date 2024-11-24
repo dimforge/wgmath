@@ -8,11 +8,11 @@ resolver = "2"
 
 [workspace.dependencies]
 nalgebra = { version = "0.33.1", features = ["convert-bytemuck"] }
-wgpu = { version = "22.1", features = ["naga-ir"] }
+wgpu = { version = "23", features = ["naga-ir"] }
 bytemuck = { version = "1", features = ["derive"] }
 anyhow = "1"
 async-channel = "2"
-naga_oil = "0.15"
+naga_oil = "0.16"
 thiserror = "1"
 encase = { version = "0.10.0", features = ["nalgebra"] }
 

@@ -1,6 +1,6 @@
 use crate::linalg::shape::Shape;
 use bytemuck::Pod;
-use naga_oil::compose::NagaModuleDescriptor;
+use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
 use nalgebra::DVector;
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
@@ -67,14 +67,12 @@ impl Reduce {
     pub const FILE_PATH: &'static str = "wgebra/src/reduce.wgsl";
 
     /// Creates the compute pipeline for the operation described by the given [`ReduceOp`].
-    pub fn new(device: &Device, op: ReduceOp) -> Self {
-        let module = Shape::composer()
-            .make_naga_module(NagaModuleDescriptor {
-                source: Self::SRC,
-                file_path: Self::FILE_PATH,
-                ..Default::default()
-            })
-            .unwrap();
+    pub fn new(device: &Device, op: ReduceOp) -> Result<Self, ComposerError> {
+        let module = Shape::composer()?.make_naga_module(NagaModuleDescriptor {
+            source: Self::SRC,
+            file_path: Self::FILE_PATH,
+            ..Default::default()
+        })?;
         let mut redirector = Redirector::new(module);
         redirector
             .redirect_function(
@@ -90,10 +88,10 @@ impl Reduce {
             .redirect_function("reduce_placeholder", op.reduce_fn(), &Default::default())
             .unwrap();
 
-        Self(
+        Ok(Self(
             utils::load_module(device, "main", redirector.into_module().unwrap()),
             op,
-        )
+        ))
     }
 
     /// Queues the operation for computing `result = reduce(value)` where `reduce` depends on the
