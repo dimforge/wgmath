@@ -12,6 +12,3 @@ fn main(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
         a[i] = Dependency::shared_function(a[i], b[i]);
     }
 }
-
-
-
