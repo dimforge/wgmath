@@ -1,19 +1,25 @@
+#[cfg(not(feature = "derive"))]
+std::compile_error!(
+    r#"
+    ###############################################################
+    ## The `derive` feature must be enabled to run this example. ##
+    ###############################################################
+"#
+);
+
 use nalgebra::{DVector, Vector4};
 use wgcore::composer::ComposerExt;
 use wgcore::gpu::GpuInstance;
+use wgcore::hot_reloading::HotReloadState;
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
 use wgcore::tensor::{GpuScalar, GpuVector};
 use wgcore::Shader;
 use wgpu::{BufferUsages, ComputePipeline};
-use wgcore::hot_reloading::HotReloadState;
 
 #[derive(Shader)]
-#[shader(
-    src = "hot_reloading.wgsl",
-    composable = false
-)]
+#[shader(src = "hot_reloading.wgsl", composable = false)]
 struct ShaderHotReloading {
-    main: ComputePipeline
+    main: ComputePipeline,
 }
 
 #[async_std::main]
@@ -31,8 +37,16 @@ async fn main() -> anyhow::Result<()> {
     let mut kernel = ShaderHotReloading::from_device(gpu.device())?;
 
     // Create the buffers.
-    let buffer = GpuScalar::init(gpu.device(), 0u32, BufferUsages::STORAGE | BufferUsages::COPY_SRC);
-    let staging = GpuScalar::init(gpu.device(), 0u32, BufferUsages::COPY_DST | BufferUsages::MAP_READ);
+    let buffer = GpuScalar::init(
+        gpu.device(),
+        0u32,
+        BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+    );
+    let staging = GpuScalar::init(
+        gpu.device(),
+        0u32,
+        BufferUsages::COPY_DST | BufferUsages::MAP_READ,
+    );
 
     // Init hot-reloading.
     let mut hot_reload = HotReloadState::new()?;

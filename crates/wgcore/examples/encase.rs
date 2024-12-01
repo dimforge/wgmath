@@ -1,5 +1,13 @@
-use nalgebra::{DVector, Vector4};
-use wgcore::composer::ComposerExt;
+#[cfg(not(feature = "derive"))]
+std::compile_error!(
+    r#"
+    ###############################################################
+    ## The `derive` feature must be enabled to run this example. ##
+    ###############################################################
+"#
+);
+
+use nalgebra::Vector4;
 use wgcore::gpu::GpuInstance;
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
 use wgcore::tensor::GpuVector;
@@ -22,12 +30,9 @@ pub struct EncaseStruct {
 }
 
 #[derive(Shader)]
-#[shader(
-    src = "encase.wgsl",
-    composable = false
-)]
+#[shader(src = "encase.wgsl", composable = false)]
 struct ShaderEncase {
-    main: ComputePipeline
+    main: ComputePipeline,
 }
 
 #[async_std::main]
@@ -46,8 +51,15 @@ async fn main() -> anyhow::Result<()> {
 
     // Create the buffers.
     const LEN: u32 = 1000;
-    let a_data = (0..LEN).map(|x| EncaseStruct { value: x as f32, value2: Vector4::repeat(x as f32 * 10.0)}).collect::<Vec<_>>();
-    let b_data = (0..LEN).map(|x| BytemuckStruct { value: x as f32}).collect::<Vec<_>>();
+    let a_data = (0..LEN)
+        .map(|x| EncaseStruct {
+            value: x as f32,
+            value2: Vector4::repeat(x as f32 * 10.0),
+        })
+        .collect::<Vec<_>>();
+    let b_data = (0..LEN)
+        .map(|x| BytemuckStruct { value: x as f32 })
+        .collect::<Vec<_>>();
     // Call `encase` instead of `init` because `EncaseStruct` isn’t `Pod`.
     // The `encase` function has a bit of overhead so bytemuck should be preferred whenever possible.
     let a_buf = GpuVector::encase(gpu.device(), &a_data, BufferUsages::STORAGE);

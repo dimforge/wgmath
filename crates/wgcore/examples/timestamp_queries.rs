@@ -1,21 +1,27 @@
-use std::ops::Div;
+#[cfg(not(feature = "derive"))]
+std::compile_error!(
+    r#"
+    ###############################################################
+    ## The `derive` feature must be enabled to run this example. ##
+    ###############################################################
+"#
+);
+
 use nalgebra::{DVector, Vector4};
+use std::ops::Div;
 use wgcore::composer::ComposerExt;
 use wgcore::gpu::GpuInstance;
+use wgcore::hot_reloading::HotReloadState;
 use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
 use wgcore::tensor::{GpuScalar, GpuVector};
+use wgcore::timestamps::GpuTimestamps;
 use wgcore::Shader;
 use wgpu::{BufferUsages, ComputePipeline};
-use wgcore::hot_reloading::HotReloadState;
-use wgcore::timestamps::GpuTimestamps;
 
 #[derive(Shader)]
-#[shader(
-    src = "timestamp_queries.wgsl",
-    composable = false
-)]
+#[shader(src = "timestamp_queries.wgsl", composable = false)]
 struct ShaderTimestampQueries {
-    main: ComputePipeline
+    main: ComputePipeline,
 }
 
 #[async_std::main]
@@ -34,7 +40,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Create the buffers.
     const LEN: u32 = 2_000_000;
-    let buffer = GpuVector::init(gpu.device(), vec![0u32; LEN as usize], BufferUsages::STORAGE | BufferUsages::COPY_SRC);
+    let buffer = GpuVector::init(
+        gpu.device(),
+        vec![0u32; LEN as usize],
+        BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+    );
 
     // Init hot-reloading.
     // We are setting up hot-reloading so that we can change somme elements in the shader
@@ -79,7 +89,10 @@ async fn main() -> anyhow::Result<()> {
 
                     // Read and print the kernel’s runtime.
                     let timestamps_read = timestamps.wait_for_results_ms(gpu.device(), gpu.queue());
-                    println!("Current run time: {}ms", timestamps_read[1] - timestamps_read[0]);
+                    println!(
+                        "Current run time: {}ms",
+                        timestamps_read[1] - timestamps_read[0]
+                    );
                 }
             }
             Err(e) => {
