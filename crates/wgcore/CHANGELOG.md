@@ -7,6 +7,7 @@
 ### Changed
 
 - Rename `Shader::set_absolute_path` to `Shader::set_wgsl_path`.
+- Rename `Shader::absolute_path` to `Shader::wgsl_path`.
 - Workgroup memory automatic zeroing is now **disabled** by default due to its significant
   performance impact.
 

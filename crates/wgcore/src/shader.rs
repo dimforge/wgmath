@@ -15,7 +15,7 @@ use wgpu::{Device, Label, ShaderModule};
 /// To access the global shader registry, call [`ShaderRegistry::get`].
 /// Whenever a shader source is needed (e.g. as a dependency of another, for instantiating one
 /// of its kernel, for hot-reloading), the path registered in this map will take precedence in the
-/// automatically-generated implementation of [`Shader::absolute_path`]. If no path is provided
+/// automatically-generated implementation of [`Shader::wgsl_path`]. If no path is provided
 /// by this registry, the absolute path detected automatically by the `derive(Shader)` will be
 /// applied. If neither exist, the shader loading code will default to the shader sources that
 /// were embedded at the time of compilation of the module.
@@ -102,11 +102,11 @@ pub trait Shader: Sized + 'static {
         Ok(composer)
     }
 
-    /// The absolute path of this wgsl shader source file.
+    /// The path of this wgsl shader source file.
     ///
     /// This returns the path from the global [`ShaderRegistry`] if it was set. Otherwise, this returns
     /// the path automatically-computed by the `derive(Shader)`. If that failed too, returns `None`.
-    fn absolute_path() -> Option<PathBuf>;
+    fn wgsl_path() -> Option<PathBuf>;
 
     /// Registers in the global [`ShaderRegistry`] known path for this shader.
     ///

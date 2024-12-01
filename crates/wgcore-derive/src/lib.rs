@@ -77,7 +77,7 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                 // First try to find a path from the shader registry.
                 // If doesn’t exist in the registry, try the absolute path.
                 // If it doesn’t exist in the absolute path, load the embedded string.
-                if let Some(path) = Self::absolute_path() {
+                if let Some(path) = Self::wgsl_path() {
                     // TODO: handle error
                     std::fs::read_to_string(path).unwrap()
                 } else {
@@ -139,7 +139,7 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                         #naga_module
                     }
 
-                    fn absolute_path() -> Option<std::path::PathBuf> {
+                    fn wgsl_path() -> Option<std::path::PathBuf> {
                         if let Some(path) = wgcore::ShaderRegistry::get().get_path::<#struct_identifier>() {
                             Some(path.clone())
                         } else {
@@ -181,7 +181,7 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                             #to_derive::watch_sources(state)?;
                         )*
 
-                        if let Some(path) = Self::absolute_path() {
+                        if let Some(path) = Self::wgsl_path() {
                             state.watch_file(&path)?;
                         }
 
@@ -195,7 +195,7 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                             }
                         )*
 
-                        Self::absolute_path()
+                        Self::wgsl_path()
                             .map(|path| state.file_changed(&path))
                             .unwrap_or_default()
                     }
