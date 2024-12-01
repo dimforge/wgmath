@@ -33,4 +33,4 @@ nalgebra = { version = "0.33", features = ["rand"] }
 futures-test = "0.3"
 serial_test = "3"
 approx = "0.5"
-async-std = "1"
+async-std = { version = "1", features = ["attributes"] }

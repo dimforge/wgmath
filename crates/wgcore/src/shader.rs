@@ -1,13 +1,13 @@
 //! Trait for reusable gpu shaders.
 
-use std::any::TypeId;
 use crate::hot_reloading::HotReloadState;
-use naga_oil::compose::{Composer, ComposerError};
-use std::path::PathBuf;
-use std::sync::OnceLock;
 use dashmap::DashMap;
-use wgpu::Device;
+use naga_oil::compose::{Composer, ComposerError};
+use std::any::TypeId;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use wgpu::naga::Module;
+use wgpu::{Device, Label, ShaderModule};
 
 /// The global shader registry used by various auto-implemented method of `Shader` for loading the
 /// shader.
@@ -23,7 +23,6 @@ use wgpu::naga::Module;
 pub struct ShaderRegistry {
     paths: DashMap<TypeId, PathBuf>,
 }
-
 
 impl ShaderRegistry {
     /// Gets the global shader registry used by various auto-implemented method of `Shader` for loading the
@@ -80,8 +79,16 @@ pub trait Shader: Sized + 'static {
         Ok(crate::utils::naga_module_to_wgsl(&module))
     }
 
-    /// The naga module built from this shader.
+    /// The naga [`Module`] built from this shader.
     fn naga_module() -> Result<Module, ComposerError>;
+
+    /// The [`ShaderModule`] built from this shader.
+    fn shader_module(device: &wgpu::Device, label: Label) -> Result<ShaderModule, ComposerError> {
+        Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label,
+            source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(Self::naga_module()?)),
+        }))
+    }
 
     /// Add to `composer` the composable module definition of `Self` (if there are any) and all its
     /// shader dependencies .
@@ -101,13 +108,15 @@ pub trait Shader: Sized + 'static {
     /// the path automatically-computed by the `derive(Shader)`. If that failed too, returns `None`.
     fn absolute_path() -> Option<PathBuf>;
 
-    /// Registers in the global [`ShaderRegistry`] known absolute path for this shader.
+    /// Registers in the global [`ShaderRegistry`] known path for this shader.
     ///
-    /// Any function form `Self` relying on the shader’s absolute path, including hot-reloading,
+    /// Any function form `Self` relying on the shader’s path, including hot-reloading,
     /// will rely on this path. Note that calling [`Self::watch_sources`] is necessary for
     /// hot-reloading to automatically detect changes at the new path.
-    fn set_absolute_path(path: PathBuf) {
-        ShaderRegistry::get().paths.insert(TypeId::of::<Self>(), path);
+    fn set_wgsl_path<P: AsRef<Path>>(path: P) {
+        ShaderRegistry::get()
+            .paths
+            .insert(TypeId::of::<Self>(), path.as_ref().to_path_buf());
     }
 
     /// Registers all the source files, for `Self` and all its shader dependencies, for change

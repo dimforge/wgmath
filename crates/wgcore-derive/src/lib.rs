@@ -108,7 +108,7 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
                     })
                 }
             } else {
-                quote ! {
+                quote! {
                     Ok(Self)
                 }
             };
@@ -204,5 +204,5 @@ pub fn derive_shader(item: TokenStream) -> TokenStream {
         }
         _ => unimplemented!(),
     }
-    .into()
+        .into()
 }
