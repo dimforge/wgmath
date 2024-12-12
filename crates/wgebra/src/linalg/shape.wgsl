@@ -1,6 +1,3 @@
-// Module comment
-// And a second line
-
 #define_import_path wgblas::shape
 
 // The shape of a (column-major) matrix.
