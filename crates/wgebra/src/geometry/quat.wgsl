@@ -1,5 +1,3 @@
-// In here
-
 #define_import_path wgebra::quat
 
 /// A unit quaternion representing a rotation.
