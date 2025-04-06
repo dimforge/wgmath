@@ -48,7 +48,6 @@ macro_rules! test_shader_compilation {
             use naga_oil::compose::NagaModuleDescriptor;
             use $wgcore::Shader;
             use $wgcore::gpu::GpuInstance;
-            use $wgcore::kernel::KernelInvocationQueue;
             use $wgcore::utils;
 
             #[futures_test::test]

@@ -44,6 +44,9 @@ impl ViewShape {
 /// optional extension, so we have to emulate them with uniforms for maximum portability.
 #[derive(Default)]
 pub struct ViewShapeBuffers {
+    // TODO: once we switch to wgpu 14, we can store a `Buffer` directly instead of
+    //       `Arc<Buffer>` (they will be clonable), and we can also store the `Device`
+    //       here to simplify `self.get` and the kernel dispatch apis.
     buffers: DashMap<ViewShape, Arc<Buffer>>,
     tmp_buffers: DashMap<ViewShape, Arc<Buffer>>,
     recycled: Mutex<Vec<Arc<Buffer>>>,

@@ -1,6 +1,5 @@
 //! Utilities for queueing and dispatching kernels.
 
-use crate::shapes::{ViewShape, ViewShapeBuffers};
 use crate::timestamps::GpuTimestamps;
 use std::sync::Arc;
 use wgpu::{Buffer, CommandEncoder, ComputePass, ComputePassDescriptor, ComputePipeline, Device};
@@ -169,36 +168,4 @@ pub enum Workgroups {
     /// Workgroup for indirect dispatch. Must be a buffer containing exactly one instance of
     /// [`wgpu::util::DispatchIndirectArgs`].
     Indirect(Arc<Buffer>),
-}
-
-/// A kernel invocation queue.
-pub struct KernelInvocationQueue<'a> {
-    device: &'a Device,
-    // TODO: should this be stored separately so multiple queues share the same cache?
-    pub shapes: ViewShapeBuffers,
-}
-
-impl<'a> KernelInvocationQueue<'a> {
-    /// Inits a new invocation queue from the given `device`.
-    ///
-    /// This operation is cheap. Multiple invocation queues are allowed.
-    pub fn new(device: &'a Device) -> Self {
-        Self {
-            device,
-            shapes: ViewShapeBuffers::new(),
-        }
-    }
-
-    /// The underlying wgpu device.
-    pub fn device(&self) -> &Device {
-        self.device
-    }
-
-    /// Gets or inits a uniform storage buffer containing a single [`ViewShape`] value equal to
-    /// `shape`.
-    ///
-    /// Calling this method multiple times with the same `shape` will return the same buffer.
-    pub fn shape_buffer(&self, shape: ViewShape) -> Arc<Buffer> {
-        self.shapes.get(self.device, shape)
-    }
 }
