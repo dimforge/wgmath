@@ -2,7 +2,8 @@ use crate::linalg::shape::Shape;
 use bytemuck::Pod;
 use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
-use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
+use wgcore::kernel::KernelDispatch;
+use wgcore::shapes::ViewShapeBuffers;
 use wgcore::tensor::GpuVectorView;
 use wgcore::utils;
 use wgcore::Shader;
@@ -69,7 +70,8 @@ impl OpAssign {
     /// [`OpAssignVariant`] selected when creating `self`.
     pub fn dispatch<'a, 'b, T: Pod>(
         &'a self,
-        queue: &KernelInvocationQueue<'a>,
+        device: &Device,
+        shapes: &ViewShapeBuffers,
         pass: &mut ComputePass,
         in_out_a: impl Into<GpuVectorView<'b, T>>,
         in_b: impl Into<GpuVectorView<'b, T>>,
@@ -83,10 +85,10 @@ impl OpAssign {
             "Op-assign: dimension mismatch."
         );
 
-        let a_shape_buf = queue.shape_buffer(in_out_a.shape());
-        let b_shape_buf = queue.shape_buffer(in_b.shape());
+        let a_shape_buf = shapes.get(device, in_out_a.shape());
+        let b_shape_buf = shapes.get(device, in_b.shape());
 
-        KernelDispatch::new(queue.device(), pass, &self.0)
+        KernelDispatch::new(device, pass, &self.0)
             .bind0([&a_shape_buf, &b_shape_buf, in_out_a.buffer(), in_b.buffer()])
             .dispatch(in_out_a.shape().size[0].div_ceil(64));
     }
@@ -97,7 +99,8 @@ mod test {
     use super::{OpAssign, OpAssignVariant};
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{CommandEncoderExt, KernelInvocationQueue};
+    use wgcore::kernel::CommandEncoderExt;
+    use wgcore::shapes::ViewShapeBuffers;
     use wgcore::tensor::TensorBuilder;
     use wgpu::BufferUsages;
 
@@ -111,10 +114,10 @@ mod test {
             OpAssignVariant::Div,
         ];
         let gpu = GpuInstance::new().await.unwrap();
+        let shapes = ViewShapeBuffers::new();
 
         for op in ops {
             let op_assign = OpAssign::new(gpu.device(), op).unwrap();
-            let mut queue = KernelInvocationQueue::new(gpu.device());
             let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
             const LEN: u32 = 1757;
@@ -130,7 +133,7 @@ mod test {
                     .build(gpu.device());
 
             let mut pass = encoder.compute_pass("test", None);
-            op_assign.dispatch(&mut queue, &mut pass, &gpu_v0, &gpu_v1);
+            op_assign.dispatch(gpu.device(), &shapes, &mut pass, &gpu_v0, &gpu_v1);
             drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
             staging.copy_from(&mut encoder, &gpu_v0);

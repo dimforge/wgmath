@@ -1,10 +1,10 @@
 //! Force and velocity integration.
 
 use crate::dynamics::body::{GpuBodySet, WgBody};
-use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
+use wgcore::kernel::KernelDispatch;
 use wgcore::Shader;
 use wgparry::{dim_shader_defs, substitute_aliases};
-use wgpu::{ComputePass, ComputePipeline};
+use wgpu::{ComputePass, ComputePipeline, Device};
 
 #[derive(Shader)]
 #[shader(
@@ -24,13 +24,8 @@ impl WgIntegrate {
 
     /// Dispatch an invocation of [`WgIntegrate::integrate`] for integrating forces and velocities
     /// of every rigid-body in the given [`GpuBodySet`]:
-    pub fn dispatch<'a>(
-        &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
-        pass: &mut ComputePass,
-        bodies: &GpuBodySet,
-    ) {
-        KernelDispatch::new(queue.device(), pass, &self.integrate)
+    pub fn dispatch(&self, device: &Device, pass: &mut ComputePass, bodies: &GpuBodySet) {
+        KernelDispatch::new(device, pass, &self.integrate)
             .bind0([
                 bodies.mprops.buffer(),
                 bodies.local_mprops.buffer(),

@@ -3,7 +3,8 @@ use bytemuck::Pod;
 use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
 use nalgebra::DVector;
-use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
+use wgcore::kernel::KernelDispatch;
+use wgcore::shapes::ViewShapeBuffers;
 use wgcore::tensor::{GpuScalar, GpuVectorView};
 use wgcore::utils;
 use wgcore::Shader;
@@ -96,16 +97,17 @@ impl Reduce {
 
     /// Dispatch the operation for computing `result = reduce(value)` where `reduce` depends on the
     /// [`ReduceOp`] selected when creating `self`.
-    pub fn dispatch<'a, 'b, T: Pod>(
-        &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
+    pub fn dispatch<'a, T: Pod>(
+        &self,
+        device: &Device,
+        shapes: &ViewShapeBuffers,
         pass: &mut ComputePass,
-        value: impl Into<GpuVectorView<'b, T>>,
+        value: impl Into<GpuVectorView<'a, T>>,
         result: &GpuScalar<T>,
     ) {
         let value = value.into();
-        let shape_buf = queue.shape_buffer(value.shape());
-        KernelDispatch::new(queue.device(), pass, &self.0)
+        let shape_buf = shapes.get(device, value.shape());
+        KernelDispatch::new(device, pass, &self.0)
             .bind0([&shape_buf, value.buffer(), result.buffer()])
             .dispatch(1);
     }
@@ -127,7 +129,8 @@ mod test {
     use super::ReduceOp;
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{CommandEncoderExt, KernelInvocationQueue};
+    use wgcore::kernel::CommandEncoderExt;
+    use wgcore::shapes::ViewShapeBuffers;
     use wgcore::tensor::TensorBuilder;
     use wgpu::BufferUsages;
 
@@ -135,6 +138,7 @@ mod test {
     #[serial_test::serial]
     async fn gpu_reduce() {
         let gpu = GpuInstance::new().await.unwrap();
+        let shapes = ViewShapeBuffers::new();
 
         let ops = [
             ReduceOp::Min,
@@ -147,7 +151,6 @@ mod test {
         for op in ops {
             println!("Testing: {:?}", op);
             let reduce = super::Reduce::new(gpu.device(), op).unwrap();
-            let mut queue = KernelInvocationQueue::new(gpu.device());
             let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
             const LEN: usize = 345;
@@ -161,7 +164,7 @@ mod test {
                 .build(gpu.device());
 
             let mut pass = encoder.compute_pass("test", None);
-            reduce.dispatch(&mut queue, &mut pass, &vector, &result);
+            reduce.dispatch(gpu.device(), &shapes, &mut pass, &vector, &result);
             drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
             staging.copy_from(&mut encoder, &result);

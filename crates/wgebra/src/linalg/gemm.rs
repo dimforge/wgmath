@@ -1,9 +1,10 @@
 use crate::linalg::shape::Shape;
 use bytemuck::Pod;
-use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
+use wgcore::kernel::KernelDispatch;
+use wgcore::shapes::ViewShapeBuffers;
 use wgcore::tensor::GpuCubeView;
 use wgcore::Shader;
-use wgpu::{ComputePass, ComputePipeline};
+use wgpu::{ComputePass, ComputePipeline, Device};
 
 #[derive(Shader)]
 #[shader(derive(Shape), src = "gemm.wgsl", composable = false)]
@@ -28,30 +29,33 @@ impl Gemm {
     /// Dispatch this shader to compute `out = m * v`.
     pub fn dispatch<'a, 'b, T: Pod>(
         &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
+        device: &Device,
+        shapes: &ViewShapeBuffers,
         pass: &mut ComputePass,
         out: impl Into<GpuCubeView<'b, T>>,
         m1: impl Into<GpuCubeView<'b, T>>,
         m2: impl Into<GpuCubeView<'b, T>>,
     ) {
-        self.dispatch_generic(queue, pass, out, m1, m2, GemmVariant::Gemm)
+        self.dispatch_generic(device, shapes, pass, out, m1, m2, GemmVariant::Gemm)
     }
 
     /// Dispatch this shader to compute `out = tr(m) * v`.
     pub fn dispatch_tr<'a, 'b, T: Pod>(
         &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
+        device: &Device,
+        shapes: &ViewShapeBuffers,
         pass: &mut ComputePass,
         out: impl Into<GpuCubeView<'b, T>>,
         m1: impl Into<GpuCubeView<'b, T>>,
         m2: impl Into<GpuCubeView<'b, T>>,
     ) {
-        self.dispatch_generic(queue, pass, out, m1, m2, GemmVariant::GemmTr)
+        self.dispatch_generic(device, shapes, pass, out, m1, m2, GemmVariant::GemmTr)
     }
 
     pub fn dispatch_generic<'a, 'b, T: Pod>(
         &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
+        device: &Device,
+        shapes: &ViewShapeBuffers,
         pass: &mut ComputePass,
         out: impl Into<GpuCubeView<'b, T>>,
         m1: impl Into<GpuCubeView<'b, T>>,
@@ -81,9 +85,9 @@ impl Gemm {
             assert_eq!(out_mats, m2.shape().size[2], "Gemm: dimension mismatch.");
         }
 
-        let out_shape_buf = queue.shape_buffer(out.shape());
-        let m1_shape_buf = queue.shape_buffer(m1.shape());
-        let m2_shape_buf = queue.shape_buffer(m2.shape());
+        let out_shape_buf = shapes.get(device, out.shape());
+        let m1_shape_buf = shapes.get(device, m1.shape());
+        let m2_shape_buf = shapes.get(device, m2.shape());
 
         let pipeline = match variant {
             GemmVariant::Gemm => &self.gemm,
@@ -100,7 +104,7 @@ impl Gemm {
             GemmVariant::GemmFast | GemmVariant::GemmTrFast => out_rows.div_ceil(4),
         };
 
-        KernelDispatch::new(queue.device(), pass, pipeline)
+        KernelDispatch::new(device, pass, pipeline)
             .bind0([
                 &out_shape_buf,
                 &m1_shape_buf,
@@ -119,7 +123,8 @@ mod test {
     use approx::assert_relative_eq;
     use nalgebra::DMatrix;
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{CommandEncoderExt, KernelInvocationQueue};
+    use wgcore::kernel::CommandEncoderExt;
+    use wgcore::shapes::ViewShapeBuffers;
     use wgcore::tensor::TensorBuilder;
     use wgcore::Shader;
     use wgpu::BufferUsages;
@@ -129,7 +134,7 @@ mod test {
     async fn gpu_gemm() {
         let gpu = GpuInstance::new().await.unwrap();
         let gemm = super::Gemm::from_device(gpu.device()).unwrap();
-        let mut queue = KernelInvocationQueue::new(gpu.device());
+        let shapes = ViewShapeBuffers::new();
 
         const NROWS: u32 = 256;
         const NCOLS: u32 = 256;
@@ -162,7 +167,8 @@ mod test {
             let mut encoder = gpu.device().create_command_encoder(&Default::default());
             let mut pass = encoder.compute_pass("test", None);
             gemm.dispatch_generic(
-                &mut queue,
+                gpu.device(),
+                &shapes,
                 &mut pass,
                 result.as_embedded_view(),
                 m1.as_embedded_view(),

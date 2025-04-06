@@ -64,7 +64,7 @@ mod test {
     use approx::assert_relative_eq;
     use nalgebra::{DVector, Point4, Similarity3, Vector4};
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{CommandEncoderExt, KernelDispatch, KernelInvocationQueue};
+    use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::{GpuScalar, GpuVector};
     use wgpu::BufferUsages;
 
@@ -73,7 +73,6 @@ mod test {
     async fn gpu_sim3() {
         let gpu = GpuInstance::new().await.unwrap();
         let sim3 = super::WgSim3::tests(gpu.device());
-        let queue = KernelInvocationQueue::new(gpu.device());
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: u32 = 345;
@@ -105,7 +104,7 @@ mod test {
         let staging_test_id = GpuScalar::uninit(gpu.device(), usages);
 
         let mut pass = encoder.compute_pass("test", None);
-        KernelDispatch::new(queue.device(), &mut pass, &sim3)
+        KernelDispatch::new(gpu.device(), &mut pass, &sim3)
             .bind0([
                 gpu_test_s1.buffer(),
                 gpu_test_s2.buffer(),
