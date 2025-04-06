@@ -2,11 +2,11 @@ use crate::linalg::shape::Shape;
 use bytemuck::Pod;
 use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
 use wgcore::tensor::GpuVectorView;
 use wgcore::utils;
 use wgcore::Shader;
-use wgpu::{ComputePipeline, Device};
+use wgpu::{ComputePass, ComputePipeline, Device};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[non_exhaustive]
@@ -67,9 +67,10 @@ impl OpAssign {
 
     /// Queues the operation for computing `in_out_a ?= in_b` where `?` depends on the
     /// [`OpAssignVariant`] selected when creating `self`.
-    pub fn queue<'a, 'b, T: Pod>(
+    pub fn dispatch<'a, 'b, T: Pod>(
         &'a self,
-        queue: &mut KernelInvocationQueue<'a>,
+        queue: &KernelInvocationQueue<'a>,
+        pass: &mut ComputePass,
         in_out_a: impl Into<GpuVectorView<'b, T>>,
         in_b: impl Into<GpuVectorView<'b, T>>,
     ) {
@@ -85,9 +86,9 @@ impl OpAssign {
         let a_shape_buf = queue.shape_buffer(in_out_a.shape());
         let b_shape_buf = queue.shape_buffer(in_b.shape());
 
-        KernelInvocationBuilder::new(queue, &self.0)
+        KernelDispatch::new(queue.device(), pass, &self.0)
             .bind0([&a_shape_buf, &b_shape_buf, in_out_a.buffer(), in_b.buffer()])
-            .queue(in_out_a.shape().size[0].div_ceil(64));
+            .dispatch(in_out_a.shape().size[0].div_ceil(64));
     }
 }
 
@@ -96,7 +97,7 @@ mod test {
     use super::{OpAssign, OpAssignVariant};
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::KernelInvocationQueue;
+    use wgcore::kernel::{CommandEncoderExt, KernelInvocationQueue};
     use wgcore::tensor::TensorBuilder;
     use wgpu::BufferUsages;
 
@@ -128,9 +129,10 @@ mod test {
                 TensorBuilder::vector(LEN, BufferUsages::MAP_READ | BufferUsages::COPY_DST)
                     .build(gpu.device());
 
-            op_assign.queue(&mut queue, &gpu_v0, &gpu_v1);
+            let mut pass = encoder.compute_pass("test", None);
+            op_assign.dispatch(&mut queue, &mut pass, &gpu_v0, &gpu_v1);
+            drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
-            queue.encode(&mut encoder, None);
             staging.copy_from(&mut encoder, &gpu_v0);
 
             gpu.queue().submit(Some(encoder.finish()));

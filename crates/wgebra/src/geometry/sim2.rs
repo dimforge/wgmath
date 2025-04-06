@@ -100,7 +100,7 @@ mod test {
     use approx::assert_relative_eq;
     use nalgebra::{DVector, Point2, Similarity2, Vector2};
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+    use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::{GpuScalar, GpuVector};
     use wgpu::BufferUsages;
 
@@ -109,7 +109,6 @@ mod test {
     async fn gpu_sim2() {
         let gpu = GpuInstance::new().await.unwrap();
         let sim2 = super::WgSim2::tests(gpu.device());
-        let mut queue = KernelInvocationQueue::new(gpu.device());
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: u32 = 345;
@@ -142,7 +141,8 @@ mod test {
         let staging_test_v2 = GpuVector::uninit(gpu.device(), LEN, usages);
         let staging_test_id = GpuScalar::uninit(gpu.device(), usages);
 
-        KernelInvocationBuilder::new(&mut queue, &sim2)
+        let mut pass = encoder.compute_pass("test", None);
+        KernelDispatch::new(gpu.device(), &mut pass, &sim2)
             .bind0([
                 gpu_test_s1.buffer(),
                 gpu_test_s2.buffer(),
@@ -152,9 +152,9 @@ mod test {
                 gpu_test_v2.buffer(),
                 gpu_test_id.buffer(),
             ])
-            .queue(LEN);
+            .dispatch(LEN);
+        drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
-        queue.encode(&mut encoder, None);
         staging_test_s1.copy_from(&mut encoder, &gpu_test_s1);
         staging_test_s2.copy_from(&mut encoder, &gpu_test_s2);
         staging_test_p1.copy_from(&mut encoder, &gpu_test_p1);

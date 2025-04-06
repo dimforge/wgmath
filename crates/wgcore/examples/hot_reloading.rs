@@ -7,12 +7,10 @@ std::compile_error!(
 "#
 );
 
-use nalgebra::{DVector, Vector4};
-use wgcore::composer::ComposerExt;
 use wgcore::gpu::GpuInstance;
 use wgcore::hot_reloading::HotReloadState;
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
-use wgcore::tensor::{GpuScalar, GpuVector};
+use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
+use wgcore::tensor::GpuScalar;
 use wgcore::Shader;
 use wgpu::{BufferUsages, ComputePipeline};
 
@@ -64,16 +62,14 @@ async fn main() -> anyhow::Result<()> {
             Ok(changed) => {
                 if changed || loop_id == 0 {
                     // We detected a change (or this is the first loop).
-                    // Read the result.
-                    let mut queue = KernelInvocationQueue::new(gpu.device());
-                    KernelInvocationBuilder::new(&mut queue, &kernel.main)
-                        .bind0([buffer.buffer()])
-                        .queue(1);
-
                     // Encode & submit the operation to the gpu.
                     let mut encoder = gpu.device().create_command_encoder(&Default::default());
                     // Run our kernel.
-                    queue.encode(&mut encoder, None);
+                    let mut pass = encoder.compute_pass("test", None);
+                    KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
+                        .bind0([buffer.buffer()])
+                        .dispatch(1);
+
                     // Copy the result to the staging buffer.
                     staging.copy_from(&mut encoder, &buffer);
                     gpu.queue().submit(Some(encoder.finish()));

@@ -1,7 +1,6 @@
 use nalgebra::DVector;
 use wgcore::gpu::GpuInstance;
 use wgcore::tensor::GpuVector;
-use wgcore::Shader;
 use wgpu::BufferUsages;
 
 #[async_std::main]

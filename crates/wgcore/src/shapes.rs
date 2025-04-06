@@ -2,11 +2,11 @@
 
 use crate::tensor::MatrixOrdering;
 use dashmap::DashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
-use wgpu::{Buffer, BufferUsages, Device};
+use wgpu::{Buffer, BufferUsages, Device, Queue};
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, bytemuck::Pod, bytemuck::Zeroable)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 /// The shape of a matrix view over a GPU tensor.
 pub struct ViewShape {
@@ -45,6 +45,8 @@ impl ViewShape {
 #[derive(Default)]
 pub struct ViewShapeBuffers {
     buffers: DashMap<ViewShape, Arc<Buffer>>,
+    tmp_buffers: DashMap<ViewShape, Arc<Buffer>>,
+    recycled: Mutex<Vec<Arc<Buffer>>>,
 }
 
 impl ViewShapeBuffers {
@@ -52,20 +54,61 @@ impl ViewShapeBuffers {
     pub fn new() -> Self {
         Self {
             buffers: DashMap::new(),
+            tmp_buffers: DashMap::new(),
+            recycled: Mutex::new(vec![]),
         }
+    }
+
+    pub fn clear_tmp(&self) {
+        let mut recycled = self.recycled.lock().unwrap();
+        self.tmp_buffers.retain(|_, buffer| {
+            recycled.push(buffer.clone());
+            false
+        })
+    }
+
+    pub fn put_tmp(&self, device: &Device, queue: &Queue, shape: ViewShape) {
+        if self.contains(shape) {
+            return;
+        }
+
+        let mut recycled = self.recycled.lock().unwrap();
+        let buffer = if let Some(buffer) = recycled.pop() {
+            queue.write_buffer(&buffer, 0, bytemuck::cast_slice(&[shape]));
+            buffer
+        } else {
+            drop(recycled);
+            Self::make_buffer(
+                device,
+                shape,
+                BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+            )
+        };
+
+        self.tmp_buffers.insert(shape, buffer);
+    }
+
+    fn make_buffer(device: &Device, shape: ViewShape, usage: BufferUsages) -> Arc<Buffer> {
+        Arc::new(device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(&[shape]),
+            usage,
+        }))
+    }
+
+    pub fn contains(&self, shape: ViewShape) -> bool {
+        self.buffers.contains_key(&shape) || self.tmp_buffers.contains_key(&shape)
     }
 
     /// Gets of insert the gpu uniform storage `Buffer` containing the value of `shape`.
     pub fn get(&self, device: &Device, shape: ViewShape) -> Arc<Buffer> {
+        if let Some(buffer) = self.tmp_buffers.get(&shape) {
+            return buffer.value().clone();
+        }
+
         self.buffers
             .entry(shape)
-            .or_insert_with(|| {
-                Arc::new(device.create_buffer_init(&BufferInitDescriptor {
-                    label: None,
-                    contents: bytemuck::cast_slice(&[shape]),
-                    usage: BufferUsages::UNIFORM,
-                }))
-            })
+            .or_insert_with(|| Self::make_buffer(device, shape, BufferUsages::UNIFORM))
             .clone()
     }
 }

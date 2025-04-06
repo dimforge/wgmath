@@ -1,10 +1,8 @@
 //! The cuboid shape.
 
-use crate::math::{Point, Vector};
 use crate::projection::WgProjection;
 use crate::ray::WgRay;
 use crate::{dim_shader_defs, substitute_aliases};
-use encase::ShaderType;
 use wgcore::Shader;
 use wgebra::{WgSim2, WgSim3};
 

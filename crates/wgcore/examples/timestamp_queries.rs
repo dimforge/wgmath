@@ -7,13 +7,10 @@ std::compile_error!(
 "#
 );
 
-use nalgebra::{DVector, Vector4};
-use std::ops::Div;
-use wgcore::composer::ComposerExt;
 use wgcore::gpu::GpuInstance;
 use wgcore::hot_reloading::HotReloadState;
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
-use wgcore::tensor::{GpuScalar, GpuVector};
+use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
+use wgcore::tensor::GpuVector;
 use wgcore::timestamps::GpuTimestamps;
 use wgcore::Shader;
 use wgpu::{BufferUsages, ComputePipeline};
@@ -62,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     println!("Edit the file `timestamp_queries.wgsl` (for example by multiplying or dividing NUM_ITERS by 10).\nThe updated runtime will be printed below whenever a change is detected.");
     println!("#############################");
 
-    for loop_id in 0.. {
+    for _loop_id in 0.. {
         // Detect & apply changes.
         hot_reload.update_changes();
         match kernel.reload_if_changed(gpu.device(), &hot_reload) {
@@ -71,18 +68,16 @@ async fn main() -> anyhow::Result<()> {
                     // Clear the timestamps to reuse in the next loop.
                     timestamps.clear();
                     // We detected a change (or this is the first loop).
-                    // Read the result.
-                    let mut queue = KernelInvocationQueue::new(gpu.device());
-                    // Declare a compute pass with timestamps enabled.
-                    queue.compute_pass("timestamp_queries_test", true);
-                    KernelInvocationBuilder::new(&mut queue, &kernel.main)
-                        .bind0([buffer.buffer()])
-                        .queue(LEN.div_ceil(64));
 
                     // Encode & submit the operation to the gpu.
                     let mut encoder = gpu.device().create_command_encoder(&Default::default());
-                    // Run our kernel.
-                    queue.encode(&mut encoder, Some(&mut timestamps));
+                    // Declare a compute pass with timestamps enabled.
+                    let mut pass =
+                        encoder.compute_pass("timestamp_queries_test", Some(&mut timestamps));
+                    // Dispatch our kernel.
+                    KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
+                        .bind0([buffer.buffer()])
+                        .dispatch(LEN.div_ceil(64));
                     // Resolve the timestamp queries.
                     timestamps.resolve(&mut encoder);
                     gpu.queue().submit(Some(encoder.finish()));

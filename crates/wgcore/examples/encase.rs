@@ -9,7 +9,7 @@ std::compile_error!(
 
 use nalgebra::Vector4;
 use wgcore::gpu::GpuInstance;
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
 use wgcore::tensor::GpuVector;
 use wgcore::Shader;
 use wgpu::{BufferUsages, ComputePipeline};
@@ -65,15 +65,12 @@ async fn main() -> anyhow::Result<()> {
     let a_buf = GpuVector::encase(gpu.device(), &a_data, BufferUsages::STORAGE);
     let b_buf = GpuVector::init(gpu.device(), &b_data, BufferUsages::STORAGE);
 
-    // Queue the operation.
-    let mut queue = KernelInvocationQueue::new(gpu.device());
-    KernelInvocationBuilder::new(&mut queue, &kernel.main)
-        .bind0([a_buf.buffer(), b_buf.buffer()])
-        .queue(LEN.div_ceil(64));
-
     // Encode & submit the operation to the gpu.
     let mut encoder = gpu.device().create_command_encoder(&Default::default());
-    queue.encode(&mut encoder, None);
+    let mut pass = encoder.compute_pass("test", None);
+    KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
+        .bind0([a_buf.buffer(), b_buf.buffer()])
+        .dispatch(LEN.div_ceil(64));
     gpu.queue().submit(Some(encoder.finish()));
 
     Ok(())
