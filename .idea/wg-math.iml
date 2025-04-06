@@ -23,6 +23,10 @@
       <sourceFolder url="file://$MODULE_DIR$/crates/wgparry/crates/wgparry3d/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/wgrapier/crates/wgrapier2d/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/crates/wgrapier/crates/wgrapier3d/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgml-chat/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgebra/examples" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/wgml-bench/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/crates/wgml-chat/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

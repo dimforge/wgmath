@@ -73,4 +73,11 @@ impl HotReloadState {
     pub fn file_changed(&self, path: &Path) -> bool {
         self.file_changed.get(path).copied().unwrap_or_default()
     }
+
+    /// Gets the list of files watched for hot-reloading, as well as there last known change status.
+    pub fn watched_files(&self) -> impl Iterator<Item = (&PathBuf, bool)> {
+        self.file_changed
+            .iter()
+            .map(|(path, changed)| (path, *changed))
+    }
 }

@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "crates/wgcore", "crates/wgebra", "crates/wgml",
+    "crates/wgcore", "crates/wgebra",
     "crates/wgparry/crates/wgparry2d", "crates/wgparry/crates/wgparry3d",
     "crates/wgrapier/crates/wgrapier2d", "crates/wgrapier/crates/wgrapier3d"
 ]
@@ -8,12 +8,15 @@ resolver = "2"
 
 [workspace.dependencies]
 nalgebra = { version = "0.33.1", features = ["convert-bytemuck"] }
+parry2d = { version = "0.18", features = ["bytemuck", "encase"] }
+parry3d = { version = "0.18", features = ["bytemuck", "encase"] }
 wgpu = { version = "23", features = ["naga-ir"] }
-bytemuck = { version = "1", features = ["derive"] }
+bytemuck = { version = "1", features = ["derive", "extern_crate_std"] }
 anyhow = "1"
 async-channel = "2"
 naga_oil = "0.16"
 thiserror = "1"
+
 encase = { version = "0.10.0", features = ["nalgebra"] }
 
 [workspace.lints]
@@ -23,3 +26,8 @@ rust.unexpected_cfgs = { level = "warn", check-cfg = [
 
 [profile.release]
 opt-level = 'z'
+
+[patch.crates-io]
+parry3d = { git = "https://github.com/dimforge/parry", branch = "encase" }
+parry2d = { git = "https://github.com/dimforge/parry", branch = "encase" }
+encase = { git = "https://github.com/sebcrozet/encase", branch = "nalgebra-points" }

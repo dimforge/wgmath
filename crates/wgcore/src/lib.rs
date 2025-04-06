@@ -36,7 +36,12 @@ macro_rules! test_shader_compilation {
     ($ty: ident) => {
         wgcore::test_shader_compilation!($ty, wgcore);
     };
+
     ($ty: ident, $wgcore: ident) => {
+        wgcore::test_shader_compilation!($ty, wgcore, Default::default());
+    };
+
+    ($ty: ident, $wgcore: ident, $shader_defs: expr) => {
         #[cfg(test)]
         mod test {
             use super::$ty;
@@ -59,9 +64,11 @@ macro_rules! test_shader_compilation {
                 );
                 let gpu = GpuInstance::new().await.unwrap();
                 let module = $ty::composer()
+                    .unwrap()
                     .make_naga_module(NagaModuleDescriptor {
                         source: &src,
                         file_path: $ty::FILE_PATH,
+                        shader_defs: $shader_defs,
                         ..Default::default()
                     })
                     .unwrap();

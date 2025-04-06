@@ -6,3 +6,4 @@ pub use linalg::*;
 
 pub mod geometry;
 pub mod linalg;
+pub mod utils;

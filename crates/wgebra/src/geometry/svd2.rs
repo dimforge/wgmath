@@ -1,3 +1,4 @@
+use crate::utils::WgTrig;
 use nalgebra::{Matrix2, Vector2};
 use wgcore::Shader;
 #[cfg(test)]
@@ -19,7 +20,7 @@ pub struct GpuSvd2 {
 }
 
 #[derive(Shader)]
-#[shader(src = "svd2.wgsl")]
+#[shader(derive(WgTrig), src = "svd2.wgsl")]
 /// Shader for computing the Singular Value Decomposition of 2x2 matrices.
 pub struct WgSvd2;
 
@@ -40,7 +41,8 @@ impl WgSvd2 {
         "#;
 
         let src = format!("{}\n{}", Self::src(), test_kernel);
-        let module = naga_oil::compose::Composer::default()
+        let module = WgTrig::composer()
+            .unwrap()
             .make_naga_module(NagaModuleDescriptor {
                 source: &src,
                 file_path: Self::FILE_PATH,

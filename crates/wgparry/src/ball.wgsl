@@ -1,5 +1,10 @@
-#import wgebra::sim3 as Pose
+#if DIM == 2
+    #import wgebra::sim2 as Pose
+#else
+    #import wgebra::sim3 as Pose
+#endif
 #import wgparry::ray as Ray
+#import wgparry::projection as Proj
 
 #define_import_path wgparry::ball
 
@@ -10,6 +15,7 @@ struct Ball {
     radius: f32,
 }
 
+/*
 /// Casts a ray on a ball.
 ///
 /// Returns a negative value if there is no hit.
@@ -39,15 +45,16 @@ fn castLocalRay(ball: Ball, ray: Ray::Ray, maxTimeOfImpact: f32) -> f32 {
 ///
 /// Returns a negative value if there is no hit.
 /// If there is a hit, the result is a scalar `t >= 0` such that the hit point is equal to `ray.origin + t * ray.dir`.
-fn castRay(ball: Ball, pose: Pose::Sim3, ray: Ray::Ray, maxTimeOfImpact: f32) -> f32 {
+fn castRay(ball: Ball, pose: Transform, ray: Ray::Ray, maxTimeOfImpact: f32) -> f32 {
     let localRay = Ray::Ray(Pose::invMulPt(pose, ray.origin), Pose::invMulVec(pose, ray.dir));
     return castLocalRay(ball, localRay, maxTimeOfImpact);
 }
+*/
 
 /// Projects a point on a ball.
 ///
 /// If the point is inside the ball, the point itself is returned.
-fn projectLocalPoint(ball: Ball, pt: vec3<f32>) -> vec3<f32> {
+fn projectLocalPoint(ball: Ball, pt: Vector) -> Vector {
     let dist = length(pt);
 
     if dist >= ball.radius {
@@ -62,7 +69,35 @@ fn projectLocalPoint(ball: Ball, pt: vec3<f32>) -> vec3<f32> {
 /// Projects a point on a transformed ball.
 ///
 /// If the point is inside the ball, the point itself is returned.
-fn projectPoint(ball: Ball, pose: Pose::Sim3, pt: vec3<f32>) -> vec3<f32> {
+fn projectPoint(ball: Ball, pose: Transform, pt: Vector) -> Vector {
     let localPt = Pose::invMulPt(pose, pt);
     return Pose::mulPt(pose, projectLocalPoint(ball, localPt));
+}
+
+
+/// Projects a point on the boundary of a ball.
+fn projectLocalPointOnBoundary(ball: Ball, pt: Vector) -> Proj::ProjectionResult {
+    let dist = length(pt);
+#if DIM == 2
+    let fallback = vec2(0.0, ball.radius);
+#else
+    let fallback = vec3(0.0, ball.radius, 0.0);
+#endif
+
+    let projected_point =
+        select(fallback, pt * (ball.radius / dist), dist != 0.0);
+    let is_inside = dist <= ball.radius;
+
+    return Proj::ProjectionResult(projected_point, is_inside);
+}
+
+/// Project a point of a transformed ball’s boundary.
+///
+/// If the point is inside of the box, it will be projected on its boundary but
+/// `ProjectionResult::is_inside` will be set to `true`.
+fn projectPointOnBoundary(ball: Ball, pose: Transform, pt: Vector) -> Proj::ProjectionResult {
+    let local_pt = Pose::invMulPt(pose, pt);
+    var result = projectLocalPointOnBoundary(ball, local_pt);
+    result.point = Pose::mulPt(pose, result.point);
+    return result;
 }

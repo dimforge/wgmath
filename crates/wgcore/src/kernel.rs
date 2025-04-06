@@ -33,6 +33,7 @@ pub struct KernelInvocationBuilder<'a, 'b> {
     queue: &'b mut KernelInvocationQueue<'a>,
     pipeline: &'a ComputePipeline,
     bind_groups: Vec<(u32, BindGroup)>,
+    queueable: bool,
 }
 
 impl<'a, 'b> KernelInvocationBuilder<'a, 'b> {
@@ -45,6 +46,7 @@ impl<'a, 'b> KernelInvocationBuilder<'a, 'b> {
             queue,
             pipeline,
             bind_groups: vec![],
+            queueable: true,
         }
     }
 
@@ -79,10 +81,23 @@ impl<'a, 'b> KernelInvocationBuilder<'a, 'b> {
         bind_group_id: u32,
         inputs: [(&Buffer, u32); INPUTS],
     ) -> Self {
-        let entries = inputs.map(|(input, binding)| wgpu::BindGroupEntry {
-            binding,
-            resource: input.as_entire_binding(),
+        let entries = inputs.map(|(input, binding)| {
+            // TODO: 0 is not the only invalid binding size.
+            //       See https://github.com/gfx-rs/wgpu/issues/253
+            if input.size() == 0 {
+                self.queueable = false;
+            }
+
+            wgpu::BindGroupEntry {
+                binding,
+                resource: input.as_entire_binding(),
+            }
         });
+
+        if !self.queueable {
+            return self;
+        }
+
         let bind_group_layout = self.pipeline.get_bind_group_layout(bind_group_id);
         let bind_group = self
             .queue
@@ -103,12 +118,17 @@ impl<'a, 'b> KernelInvocationBuilder<'a, 'b> {
     /// The invocation will be configured with the given `workgroups` size (typically specified as
     /// a single `u32` or a `[u32; 3]`).
     pub fn queue(self, workgroups: impl WorkgroupSize) {
-        let invocation = KernelInvocation {
-            pipeline: self.pipeline,
-            bind_groups: self.bind_groups,
-            workgroups: Workgroups::Direct(workgroups.into_workgroups_size()),
-        };
-        self.queue.push(invocation)
+        let workgroup_size = workgroups.into_workgroups_size();
+
+        // NOTE: we don’t need to queue if the workgroup is empty.
+        if self.queueable && workgroup_size[0] * workgroup_size[1] * workgroup_size[2] > 0 {
+            let invocation = KernelInvocation {
+                pipeline: self.pipeline,
+                bind_groups: self.bind_groups,
+                workgroups: Workgroups::Direct(workgroup_size),
+            };
+            self.queue.push(invocation)
+        }
     }
 
     /// Queues the indirect kernel invocation into the `queue` that was given to
@@ -117,11 +137,16 @@ impl<'a, 'b> KernelInvocationBuilder<'a, 'b> {
     /// The invocation will be configured with an indirect `workgroups` size specified with a
     /// `Buffer` that must contain exactly one instance of [`wgpu::util::DispatchIndirectArgs`].
     pub fn queue_indirect(self, workgroups: Arc<Buffer>) {
+        if !self.queueable {
+            return;
+        }
+
         let invocation = KernelInvocation {
             pipeline: self.pipeline,
             bind_groups: self.bind_groups,
             workgroups: Workgroups::Indirect(workgroups),
         };
+
         self.queue.push(invocation)
     }
 }

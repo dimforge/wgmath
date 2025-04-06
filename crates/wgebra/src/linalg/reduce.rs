@@ -123,7 +123,7 @@ impl Reduce {
 
 #[cfg(test)]
 mod test {
-    use crate::ops::reduce::ReduceOp;
+    use super::ReduceOp;
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::KernelInvocationQueue;
@@ -145,7 +145,7 @@ mod test {
 
         for op in ops {
             println!("Testing: {:?}", op);
-            let reduce = super::Reduce::new(gpu.device(), op);
+            let reduce = super::Reduce::new(gpu.device(), op).unwrap();
             let mut queue = KernelInvocationQueue::new(gpu.device());
             let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
