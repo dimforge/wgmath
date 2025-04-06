@@ -5,12 +5,9 @@ use crate::capsule::WgCapsule;
 use crate::cuboid::WgCuboid;
 use crate::projection::WgProjection;
 use crate::ray::WgRay;
-use crate::segment::WgSegment;
 use crate::{dim_shader_defs, substitute_aliases};
-use encase::ShaderType;
-use na::{vector, Point3, Vector4};
-use parry::shape::{Polyline, Segment, Shape, ShapeType, TypedShape};
-use std::mem::discriminant;
+use na::{vector, Vector4};
+use parry::shape::{Shape, ShapeType, TypedShape};
 use wgcore::{test_shader_compilation, Shader};
 use wgebra::{WgSim2, WgSim3};
 

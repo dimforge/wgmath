@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 
 pub extern crate nalgebra as na;
 #[cfg(feature = "dim2")]
@@ -14,9 +14,9 @@ pub mod ball;
 pub mod capsule;
 pub mod cuboid;
 pub mod projection;
-pub mod triangle;
 mod ray;
 pub mod segment;
+pub mod triangle;
 // mod contact;
 
 #[cfg(feature = "dim3")]

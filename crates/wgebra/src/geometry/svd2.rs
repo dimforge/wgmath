@@ -59,7 +59,7 @@ mod test {
     use approx::assert_relative_eq;
     use nalgebra::{DVector, Matrix2};
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+    use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;
     use wgpu::BufferUsages;
 
@@ -68,7 +68,6 @@ mod test {
     async fn gpu_svd2() {
         let gpu = GpuInstance::new().await.unwrap();
         let svd = super::WgSvd2::tests(gpu.device());
-        let mut queue = KernelInvocationQueue::new(gpu.device());
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: usize = 345;
@@ -87,13 +86,13 @@ mod test {
             BufferUsages::MAP_READ | BufferUsages::COPY_DST,
         );
 
-        // Queue the test.
-        KernelInvocationBuilder::new(&mut queue, &svd)
+        // Dispatch the test.
+        let mut pass = encoder.compute_pass("test", None);
+        KernelDispatch::new(gpu.device(), &mut pass, &svd)
             .bind0([inputs.buffer(), result.buffer()])
-            .queue(matrices.len() as u32);
+            .dispatch(matrices.len() as u32);
+        drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
-        // Run.
-        queue.encode(&mut encoder, None);
         staging.copy_from(&mut encoder, &result);
         gpu.queue().submit(Some(encoder.finish()));
 

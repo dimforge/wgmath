@@ -3,11 +3,11 @@ use bytemuck::Pod;
 use naga_oil::compose::{ComposerError, NagaModuleDescriptor};
 use naga_oil::redirect::Redirector;
 use nalgebra::DVector;
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
 use wgcore::tensor::{GpuScalar, GpuVectorView};
 use wgcore::utils;
 use wgcore::Shader;
-use wgpu::{ComputePipeline, Device};
+use wgpu::{ComputePass, ComputePipeline, Device};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 #[non_exhaustive]
@@ -94,19 +94,20 @@ impl Reduce {
         ))
     }
 
-    /// Queues the operation for computing `result = reduce(value)` where `reduce` depends on the
+    /// Dispatch the operation for computing `result = reduce(value)` where `reduce` depends on the
     /// [`ReduceOp`] selected when creating `self`.
-    pub fn queue<'a, 'b, T: Pod>(
+    pub fn dispatch<'a, 'b, T: Pod>(
         &'a self,
         queue: &mut KernelInvocationQueue<'a>,
+        pass: &mut ComputePass,
         value: impl Into<GpuVectorView<'b, T>>,
         result: &GpuScalar<T>,
     ) {
         let value = value.into();
         let shape_buf = queue.shape_buffer(value.shape());
-        KernelInvocationBuilder::new(queue, &self.0)
+        KernelDispatch::new(queue.device(), pass, &self.0)
             .bind0([&shape_buf, value.buffer(), result.buffer()])
-            .queue(1);
+            .dispatch(1);
     }
 
     #[doc(hidden)]
@@ -126,7 +127,7 @@ mod test {
     use super::ReduceOp;
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
-    use wgcore::kernel::KernelInvocationQueue;
+    use wgcore::kernel::{CommandEncoderExt, KernelInvocationQueue};
     use wgcore::tensor::TensorBuilder;
     use wgpu::BufferUsages;
 
@@ -159,9 +160,10 @@ mod test {
             let staging = TensorBuilder::scalar(BufferUsages::MAP_READ | BufferUsages::COPY_DST)
                 .build(gpu.device());
 
-            reduce.queue(&mut queue, &vector, &result);
+            let mut pass = encoder.compute_pass("test", None);
+            reduce.dispatch(&mut queue, &mut pass, &vector, &result);
+            drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
-            queue.encode(&mut encoder, None);
             staging.copy_from(&mut encoder, &result);
             gpu.queue().submit(Some(encoder.finish()));
 

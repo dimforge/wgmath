@@ -24,22 +24,14 @@ wgcore::test_shader_compilation!(WgProjection);
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use crate::math::{Point, Vector};
     use crate::projection::GpuProjectionResult;
     use crate::{dim_shader_defs, substitute_aliases};
-    use na::point;
     use nalgebra::vector;
     #[cfg(feature = "dim2")]
-    use parry2d::{
-        query::PointQuery,
-        shape::{Ball, Shape},
-    };
+    use parry2d::shape::Shape;
     #[cfg(feature = "dim3")]
-    use parry3d::{
-        query::PointQuery,
-        shape::{Ball, Shape},
-    };
-    use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+    use parry3d::shape::Shape;
+    use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;
     use wgcore::{gpu::GpuInstance, Shader};
     use wgpu::{Buffer, BufferUsages, Device};
@@ -96,7 +88,6 @@ fn test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {{
     ) {
         let gpu = GpuInstance::new().await.unwrap();
         let wg_ball = test_pipeline::<Sh>(gpu.device(), shader_shape_type);
-        let mut queue = KernelInvocationQueue::new(gpu.device());
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: u32 = 30;
@@ -140,16 +131,17 @@ fn test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {{
         let staging_projs_on_boundary: GpuVector<GpuProjectionResult> =
             GpuVector::uninit(gpu.device(), points.len() as u32, usages);
 
-        KernelInvocationBuilder::new(&mut queue, &wg_ball)
+        let mut pass = encoder.compute_pass("test", None);
+        KernelDispatch::new(gpu.device(), &mut pass, &wg_ball)
             .bind0([
                 &gpu_shapes,
                 gpu_points.buffer(),
                 gpu_projs.buffer(),
                 gpu_projs_on_boundary.buffer(),
             ])
-            .queue(points.len() as u32);
+            .dispatch(points.len() as u32);
+        drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
-        queue.encode(&mut encoder, None);
         staging_projs.copy_from(&mut encoder, &gpu_projs);
         staging_projs_on_boundary.copy_from(&mut encoder, &gpu_projs_on_boundary);
         gpu.queue().submit(Some(encoder.finish()));

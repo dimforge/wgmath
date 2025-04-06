@@ -1,10 +1,10 @@
 //! Force and velocity integration.
 
 use crate::dynamics::body::{GpuBodySet, WgBody};
-use wgcore::kernel::{KernelInvocationBuilder, KernelInvocationQueue};
+use wgcore::kernel::{KernelDispatch, KernelInvocationQueue};
 use wgcore::Shader;
 use wgparry::{dim_shader_defs, substitute_aliases};
-use wgpu::ComputePipeline;
+use wgpu::{ComputePass, ComputePipeline};
 
 #[derive(Shader)]
 #[shader(
@@ -22,17 +22,22 @@ pub struct WgIntegrate {
 impl WgIntegrate {
     const WORKGROUP_SIZE: u32 = 64;
 
-    /// Queues an invocation of [`WgIntegrate::integrate`] for integrating forces and velocities
+    /// Dispatch an invocation of [`WgIntegrate::integrate`] for integrating forces and velocities
     /// of every rigid-body in the given [`GpuBodySet`]:
-    pub fn queue<'a>(&'a self, queue: &mut KernelInvocationQueue<'a>, bodies: &GpuBodySet) {
-        KernelInvocationBuilder::new(queue, &self.integrate)
+    pub fn dispatch<'a>(
+        &'a self,
+        queue: &mut KernelInvocationQueue<'a>,
+        pass: &mut ComputePass,
+        bodies: &GpuBodySet,
+    ) {
+        KernelDispatch::new(queue.device(), pass, &self.integrate)
             .bind0([
                 bodies.mprops.buffer(),
                 bodies.local_mprops.buffer(),
                 bodies.poses.buffer(),
                 bodies.vels.buffer(),
             ])
-            .queue(bodies.len().div_ceil(Self::WORKGROUP_SIZE));
+            .dispatch(bodies.len().div_ceil(Self::WORKGROUP_SIZE));
     }
 }
 

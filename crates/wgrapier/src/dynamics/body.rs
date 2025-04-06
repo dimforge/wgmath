@@ -2,7 +2,7 @@
 
 use encase::ShaderType;
 use num_traits::Zero;
-use rapier::geometry::{ColliderHandle, TypedShape};
+use rapier::geometry::ColliderHandle;
 use rapier::prelude::MassProperties;
 use rapier::{
     dynamics::{RigidBodyHandle, RigidBodySet},
@@ -10,13 +10,14 @@ use rapier::{
 };
 use wgcore::tensor::GpuVector;
 use wgcore::Shader;
-use wgebra::{GpuSim3, WgQuat, WgSim2, WgSim3};
+use wgebra::{WgQuat, WgSim2, WgSim3};
 use wgparry::math::{AngVector, AngularInertia, GpuSim, Point, Vector};
-use wgparry::parry::shape::Cuboid;
 use wgparry::shape::{GpuShape, ShapeBuffers};
 use wgparry::{dim_shader_defs, substitute_aliases};
-use wgpu::BindingType::Buffer;
 use wgpu::{BufferUsages, Device};
+
+#[cfg(feature = "dim3")]
+use wgebra::GpuSim3;
 
 #[derive(ShaderType, Copy, Clone, PartialEq)]
 #[repr(C)]
@@ -174,6 +175,7 @@ impl GpuBodySet {
             let desc = BodyDesc {
                 vel: GpuVelocity {
                     linear: *rb.linvel(),
+                    #[allow(clippy::clone_on_copy)] // Needed for 2D/3D switch.
                     angular: rb.angvel().clone(),
                 },
                 #[cfg(feature = "dim2")]
@@ -208,6 +210,7 @@ impl GpuBodySet {
         pt_collider_ids: &[u32],
         shape_buffers: &ShapeBuffers,
     ) -> Self {
+        #[allow(clippy::type_complexity)]
         let (local_mprops, (mprops, (vels, (poses, shapes_data)))): (
             Vec<_>,
             (Vec<_>, (Vec<_>, (Vec<_>, Vec<_>))),
@@ -246,7 +249,7 @@ impl GpuBodySet {
             ),
             shapes_vertex_collider_id: GpuVector::init(
                 device,
-                &pt_collider_ids,
+                pt_collider_ids,
                 BufferUsages::STORAGE,
             ),
             shapes_data,

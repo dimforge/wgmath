@@ -129,7 +129,7 @@ impl<const DIM: usize> TensorBuilder<DIM> {
 
     /// Builds the gpu tensor.
     pub fn build_uninit_encased<T: ShaderType>(self, device: &Device) -> GpuTensor<T, DIM> {
-        let bytes_len = T::min_size().get() as u64 * self.len();
+        let bytes_len = T::min_size().get() * self.len();
         let buffer = device.create_buffer(&BufferDescriptor {
             label: self.label.as_deref(),
             size: bytes_len,
@@ -291,9 +291,7 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
             "Can only embed into a higher-order tensor view."
         );
         let mut embedded_shape = [1; DIM2];
-        for k in 0..DIM {
-            embedded_shape[k] = self.shape[k];
-        }
+        embedded_shape[..DIM].copy_from_slice(&self.shape[..DIM]);
         self.reshape(embedded_shape, None, None)
     }
 
@@ -398,7 +396,7 @@ impl<'a, T, Ordering, const DIM: usize> GpuTensorView<'a, T, Ordering, DIM> {
     }
 }
 
-impl<'a, T> GpuVectorView<'a, T> {
+impl<T> GpuVectorView<'_, T> {
     /// Is this view empty?
     pub fn is_empty(&self) -> bool {
         self.len() == 0
@@ -423,7 +421,7 @@ impl<'a, T> GpuVectorView<'a, T> {
                 stride_mat: self.view_shape.stride_mat,
                 offset: self.view_shape.offset + i,
             },
-            buffer: &self.buffer,
+            buffer: self.buffer,
             phantom: PhantomData,
         }
     }
@@ -441,13 +439,13 @@ impl<'a, T, Ordering> GpuCubeView<'a, T, Ordering> {
                 stride_mat: 1,
                 offset: self.view_shape.offset + self.view_shape.stride_mat * matrix_id,
             },
-            buffer: &self.buffer,
+            buffer: self.buffer,
             phantom: PhantomData,
         }
     }
 }
 
-impl<'a, T, Ordering> GpuMatrixView<'a, T, Ordering> {
+impl<T, Ordering> GpuMatrixView<'_, T, Ordering> {
     pub fn columns(&self, first_col: u32, ncols: u32) -> Self {
         let nrows = self.view_shape.size[0];
         GpuTensorView {
@@ -457,7 +455,7 @@ impl<'a, T, Ordering> GpuMatrixView<'a, T, Ordering> {
                 stride_mat: self.view_shape.stride_mat,
                 offset: self.view_shape.offset + self.view_shape.stride * first_col,
             },
-            buffer: &self.buffer,
+            buffer: self.buffer,
             phantom: PhantomData,
         }
     }
@@ -471,7 +469,7 @@ impl<'a, T, Ordering> GpuMatrixView<'a, T, Ordering> {
                 stride_mat: self.view_shape.stride_mat,
                 offset: self.view_shape.offset + first_row,
             },
-            buffer: &self.buffer,
+            buffer: self.buffer,
             phantom: PhantomData,
         }
     }
@@ -487,9 +485,7 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
         assert!(shape.iter().product::<u32>() <= self.shape.iter().product::<u32>());
 
         let mut size = [1; 3];
-        for k in 0..DIM2 {
-            size[k] = shape[k];
-        }
+        size[..DIM2].copy_from_slice(&shape[..DIM2]);
 
         let default_stride = if Ordering::is_column_major() {
             shape[0]

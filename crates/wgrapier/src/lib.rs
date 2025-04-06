@@ -1,5 +1,5 @@
 #![doc = include_str!("../README.md")]
-#![warn(missing_docs)]
+// #![warn(missing_docs)]
 
 #[cfg(feature = "dim2")]
 pub extern crate rapier2d as rapier;
