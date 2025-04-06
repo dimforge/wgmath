@@ -4,8 +4,21 @@
     #import wgebra::sim3 as Pose
 #endif
 #import wgparry::ray as Ray
+#import wgparry::projection as Proj
 
 #define_import_path wgparry::cuboid
+
+/// The result of a point projection.
+struct ProjectionResult {
+    /// The point’s projection on the shape.
+    /// This can be equal to the original point if the point was inside
+    /// of the shape and the projection function doesn’t always project
+    /// on the boundary.
+    point: Vector,
+    /// Is the point inside of the shape?
+    is_inside: bool,
+}
+
 
 /// A box, defined by its half-extents (half-length alon geach dimension).
 struct Cuboid {
@@ -34,19 +47,8 @@ fn projectPoint(box: Cuboid, pose: Transform, pt: Vector) -> Vector {
     return Pose::mulPt(pose, projectLocalPoint(box, local_pt));
 }
 
-/// The result of a point projection.
-struct ProjectionResult {
-    /// The point’s projection on the shape.
-    /// This can be equal to the original point if the point was inside
-    /// of the shape and the projection function doesn’t always project
-    /// on the boundary.
-    point: Vector,
-    /// Is the point inside of the shape?
-    is_inside: bool,
-}
-
-/// Projects a point in a box.
-fn projectLocalPointOnBoundary(box: Cuboid, pt: Vector) -> ProjectionResult {
+/// Projects a point on the boundary of a box.
+fn projectLocalPointOnBoundary(box: Cuboid, pt: Vector) -> Proj::ProjectionResult {
     let out_proj = projectLocalPoint(box, pt);
 
     // Projection if the point is inside the box.
@@ -74,14 +76,14 @@ fn projectLocalPointOnBoundary(box: Cuboid, pt: Vector) -> ProjectionResult {
 
     // Select between in and out proj.
     let is_inside = all(pt == out_proj);
-    return ProjectionResult(select(out_proj, in_proj, is_inside), is_inside);
+    return Proj::ProjectionResult(select(out_proj, in_proj, is_inside), is_inside);
 }
 
 /// Project a point of a transformed box’s boundary.
 ///
 /// If the point is inside of the box, it will be projected on its boundary but
 /// `ProjectionResult::is_inside` will be set to `true`.
-fn projectPointOnBoundary(box: Cuboid, pose: Transform, pt: Vector) -> ProjectionResult {
+fn projectPointOnBoundary(box: Cuboid, pose: Transform, pt: Vector) -> Proj::ProjectionResult {
     let local_pt = Pose::invMulPt(pose, pt);
     var result = projectLocalPointOnBoundary(box, local_pt);
     result.point = Pose::mulPt(pose, result.point);

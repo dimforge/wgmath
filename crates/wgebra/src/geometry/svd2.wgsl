@@ -1,4 +1,5 @@
 #define_import_path wgebra::svd2
+#import wgebra::trig as Trig
 
 // The SVD of a 2x2 matrix.
 struct Svd {
@@ -23,8 +24,8 @@ fn svd(m: mat2x2<f32>) -> Svd {
     let sy_sign = select(1.0, -1.0, sy < 0.0);
     let singular_values = vec2(sx, sy * sy_sign);
 
-    let a1 = atan2_not_nan(g, f);
-    let a2 = atan2_not_nan(h, e);
+    let a1 = Trig::stable_atan2(g, f);
+    let a2 = Trig::stable_atan2(h, e);
     let theta = (a2 - a1) * 0.5;
     let phi = (a2 + a1) * 0.5;
     let st = sin(theta);
@@ -36,30 +37,6 @@ fn svd(m: mat2x2<f32>) -> Svd {
     let v_t = mat2x2(vec2(ct, st * sy_sign), vec2(-st, ct * sy_sign));
 
     return Svd(u, singular_values, v_t);
-}
-
-/// THe value of pi.
-const PI: f32 = 3.14159265358979323846264338327950288;
-
-/// In some platforms, atan2 has unusable edge cases, e.g., returning NaN when y = 0 and x = 0.
-///
-/// This is for example the case in Metal/MSL: https://github.com/gfx-rs/wgpu/issues/4319
-/// So we need to implement it ourselves to ensure svd always returns reasonable results on some
-/// edge cases like the identity.
-fn atan2_not_nan(y: f32, x: f32) -> f32 {
-    let ang = atan(y / x);
-    if x > 0.0 {
-        return ang;
-    }
-    if x < 0.0 && y > 0.0 {
-        return ang + PI;
-    }
-    if x < 0.0 && y < 0.0 {
-        return ang - PI;
-    }
-
-    // Force the other ubounded cases to 0.
-    return 0.0;
 }
 
 // Rebuilds the matrix this svd is the decomposition of.

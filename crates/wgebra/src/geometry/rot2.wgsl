@@ -16,6 +16,13 @@ fn identity() -> Rot2 {
     return Rot2(vec2(1.0, 0.0));
 }
 
+fn toMatrix(r: Rot2) -> mat2x2<f32> {
+    return mat2x2(
+        vec2(r.cosSin.x, r.cosSin.y),
+        vec2(-r.cosSin.y, r.cosSin.x)
+    );
+}
+
 /// The inverse of a 2d rotation.
 fn inv(r: Rot2) -> Rot2 {
     return Rot2(vec2(r.cosSin.x, -r.cosSin.y));

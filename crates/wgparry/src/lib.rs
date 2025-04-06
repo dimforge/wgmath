@@ -1,15 +1,29 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
 
-extern crate nalgebra as na;
+pub extern crate nalgebra as na;
+#[cfg(feature = "dim2")]
+pub extern crate parry2d as parry;
+#[cfg(feature = "dim3")]
+pub extern crate parry3d as parry;
 
 use naga_oil::compose::ShaderDefValue;
 use std::collections::HashMap;
 
-mod ball;
-// mod contact;
+pub mod ball;
+pub mod capsule;
 pub mod cuboid;
+pub mod projection;
+pub mod triangle;
 mod ray;
+pub mod segment;
+// mod contact;
+
+#[cfg(feature = "dim3")]
+pub mod cone;
+#[cfg(feature = "dim3")]
+pub mod cylinder;
+pub mod shape;
 
 /// Shader definitions that depend on whether we are building the 2D or 3D version of this crate.
 pub fn dim_shader_defs() -> HashMap<String, ShaderDefValue> {
@@ -32,14 +46,14 @@ pub fn substitute_aliases(src: &str) -> String {
         .replace("Transform", "Pose::Sim2")
         .replace("AngVector(", "f32(")
         .replace("AngVector", "f32")
-        .replace("Vector(", "vec2(")
+        .replace("Vector(", "vec2<f32>(")
         .replace("Vector", "vec2<f32>");
     #[cfg(feature = "dim3")]
     return src
         .replace("Transform", "Pose::Sim3")
         .replace("AngVector(", "vec3(")
         .replace("AngVector", "vec3<f32>")
-        .replace("Vector(", "vec3(")
+        .replace("Vector(", "vec3<f32>(")
         .replace("Vector", "vec3<f32>");
 }
 

@@ -36,4 +36,4 @@ impl WgIntegrate {
     }
 }
 
-wgcore::test_shader_compilation!(WgIntegrate);
+wgcore::test_shader_compilation!(WgIntegrate, wgcore, wgparry::dim_shader_defs());

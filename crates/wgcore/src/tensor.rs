@@ -3,15 +3,39 @@
 
 use crate::shapes::ViewShape;
 use bytemuck::Pod;
-use encase::internal::WriteInto;
+use encase::internal::{CreateFrom, ReadFrom, WriteInto};
 use encase::{ShaderSize, ShaderType, StorageBuffer};
 use nalgebra::{Dim, IsContiguous, Matrix, Storage};
 use std::marker::PhantomData;
 use std::mem::size_of;
 use wgpu::{
     util::{BufferInitDescriptor, DeviceExt},
-    Buffer, BufferAddress, BufferDescriptor, BufferUsages, CommandEncoder, Device,
+    Buffer, BufferAddress, BufferDescriptor, BufferUsages, BufferView, CommandEncoder, Device,
 };
+
+#[derive(Copy, Clone)]
+pub struct ColumnMajor;
+#[derive(Copy, Clone)]
+pub struct RowMajor;
+
+pub trait MatrixOrdering: Copy + Clone {
+    fn is_row_major() -> bool;
+    fn is_column_major() -> bool {
+        !Self::is_row_major()
+    }
+}
+
+impl MatrixOrdering for ColumnMajor {
+    fn is_row_major() -> bool {
+        false
+    }
+}
+
+impl MatrixOrdering for RowMajor {
+    fn is_row_major() -> bool {
+        true
+    }
+}
 
 /// A storage buffer containing a single value.
 pub type GpuScalar<T> = GpuTensor<T, 0>;
@@ -19,13 +43,17 @@ pub type GpuScalar<T> = GpuTensor<T, 0>;
 pub type GpuVector<T> = GpuTensor<T, 1>;
 /// A storage buffer containing a matrix.
 pub type GpuMatrix<T> = GpuTensor<T, 2>;
+/// A storage buffer containing a cube (order-3 tensor).
+pub type GpuCube<T> = GpuTensor<T, 3>;
 
 /// A view, over a storage buffer, containing a single value.
-pub type GpuScalarView<'a, T> = GpuTensorView<'a, T, 0>;
+pub type GpuScalarView<'a, T, Ordering = ColumnMajor> = GpuTensorView<'a, T, Ordering, 0>;
 /// A view, over a storage buffer, containing a vector.
-pub type GpuVectorView<'a, T> = GpuTensorView<'a, T, 1>;
+pub type GpuVectorView<'a, T, Ordering = ColumnMajor> = GpuTensorView<'a, T, Ordering, 1>;
 /// A view, over a storage buffer, containing a matrix.
-pub type GpuMatrixView<'a, T> = GpuTensorView<'a, T, 2>;
+pub type GpuMatrixView<'a, T, Ordering = ColumnMajor> = GpuTensorView<'a, T, Ordering, 2>;
+/// A view, over a storage buffer, containing a cube (order-3 tensor).
+pub type GpuCubeView<'a, T, Ordering = ColumnMajor> = GpuTensorView<'a, T, Ordering, 3>;
 
 /// Helper struct for creating gpu storage buffers (scalars, vectors, matrices, tensors).
 ///
@@ -85,6 +113,23 @@ impl<const DIM: usize> TensorBuilder<DIM> {
     /// Builds the gpu tensor.
     pub fn build<T: Pod>(self, device: &Device) -> GpuTensor<T, DIM> {
         let bytes_len = std::mem::size_of::<T>() as u64 * self.len();
+        let buffer = device.create_buffer(&BufferDescriptor {
+            label: self.label.as_deref(),
+            size: bytes_len,
+            usage: self.usage,
+            mapped_at_creation: false,
+        });
+
+        GpuTensor {
+            shape: self.shape,
+            buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    /// Builds the gpu tensor.
+    pub fn build_uninit_encased<T: ShaderType>(self, device: &Device) -> GpuTensor<T, DIM> {
+        let bytes_len = T::min_size().get() as u64 * self.len();
         let buffer = device.create_buffer(&BufferDescriptor {
             label: self.label.as_deref(),
             size: bytes_len,
@@ -167,6 +212,14 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
         std::mem::size_of::<T>() as u64 * self.len()
     }
 
+    /// The size, in bytes, of this tensor’s content.
+    pub fn bytes_len_encased(&self) -> u64
+    where
+        T: ShaderType,
+    {
+        T::min_size().get() * self.len()
+    }
+
     /// Queues a buffer-to-buffer copy from `source` to `self`.
     ///
     /// Panics if the lengths do not match.
@@ -178,11 +231,19 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
         encoder.copy_buffer_to_buffer(&source.buffer, 0, &self.buffer, 0, self.bytes_len())
     }
 
+    pub fn copy_from_encased(&self, encoder: &mut CommandEncoder, source: &GpuTensor<T, DIM>)
+    where
+        T: ShaderType,
+    {
+        assert_eq!(self.len(), source.len());
+        encoder.copy_buffer_to_buffer(&source.buffer, 0, &self.buffer, 0, self.bytes_len_encased())
+    }
+
     /// Queues a buffer-to-buffer copy from `source` to `self`.
-    pub fn copy_from_view<'a>(
+    pub fn copy_from_view<'a, Ordering>(
         &self,
         encoder: &mut CommandEncoder,
-        source: impl Into<GpuTensorView<'a, T, DIM>>,
+        source: impl Into<GpuTensorView<'a, T, Ordering, DIM>>,
     ) where
         T: Pod,
     {
@@ -217,15 +278,27 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
     }
 
     /// Builds a tensor view sharing the same shape, stride, and buffer, as `self`.
-    pub fn as_view(&self) -> GpuTensorView<T, DIM> {
+    pub fn as_view<Ordering: MatrixOrdering>(&self) -> GpuTensorView<T, Ordering, DIM> {
         self.into()
     }
 
+    // TODO: not sure if there is an official name for this operation.
+    pub fn as_embedded_view<Ordering: MatrixOrdering, const DIM2: usize>(
+        &self,
+    ) -> GpuTensorView<T, Ordering, DIM2> {
+        assert!(
+            DIM2 >= DIM,
+            "Can only embed into a higher-order tensor view."
+        );
+        let mut embedded_shape = [1; DIM2];
+        for k in 0..DIM {
+            embedded_shape[k] = self.shape[k];
+        }
+        self.reshape(embedded_shape, None, None)
+    }
+
     /// Reads the buffer’s content into a vector.
-    pub async fn read(&self, device: &Device) -> anyhow::Result<Vec<T>>
-    where
-        T: Pod,
-    {
+    pub async fn read_bytes<'a>(&'a self, device: &'a Device) -> anyhow::Result<BufferView<'a>> {
         // TODO: could probably be optimized?
         let buffer_slice = self.buffer.slice(..);
 
@@ -240,40 +313,65 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
         }
         #[cfg(target_arch = "wasm32")]
         {
+            let (sender, receiver) = async_channel::bounded(1);
+            buffer_slice.map_async(wgpu::MapMode::Read, move |v| {
+                let _ = sender.force_send(v).unwrap();
+            });
             device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+            receiver.recv().await?.unwrap();
         }
 
         let data = buffer_slice.get_mapped_range();
-        let result = bytemuck::cast_slice(&data).to_vec();
+        Ok(data)
+    }
+
+    /// Reads the buffer’s content into a slice.
+    pub async fn read_to(&self, device: &Device, out: &mut [T]) -> anyhow::Result<()>
+    where
+        T: Pod,
+    {
+        let data = self.read_bytes(device).await?;
+        let result = bytemuck::try_cast_slice(&data)?;
+        out.copy_from_slice(result);
+        drop(data);
+        self.buffer.unmap();
+        Ok(())
+    }
+
+    /// Reads the buffer’s content into a vector.
+    pub async fn read(&self, device: &Device) -> anyhow::Result<Vec<T>>
+    where
+        T: Pod,
+    {
+        let data = self.read_bytes(device).await?;
+        let result = bytemuck::try_cast_slice(&data)?.to_vec();
+        drop(data);
+        self.buffer.unmap();
+        Ok(result)
+    }
+
+    /// Reads the buffer’s content into a vector.
+    pub async fn read_encased(&self, device: &Device) -> anyhow::Result<Vec<T>>
+    where
+        T: ShaderType + ReadFrom + ShaderSize + CreateFrom,
+    {
+        let data = self.read_bytes(device).await?;
+        let mut result = vec![];
+        let bytes = data.as_ref();
+        let buffer = StorageBuffer::new(&bytes);
+        buffer.read(&mut result)?;
         drop(data);
         self.buffer.unmap();
         Ok(result)
     }
 }
 
-impl<'a, T, const DIM: usize> From<&'a GpuTensor<T, DIM>> for GpuTensorView<'a, T, DIM> {
-    fn from(val: &'a GpuTensor<T, DIM>) -> Self {
-        let mut size = [1; 2];
-        let mut stride = 0;
-
-        if DIM >= 1 {
-            size[0] = val.shape[0];
-        }
-
-        if DIM >= 2 {
-            stride = val.shape[0];
-            size[1] = val.shape[1];
-        }
-
-        GpuTensorView {
-            view_shape: ViewShape {
-                size,
-                stride,
-                offset: 0,
-            },
-            buffer: &val.buffer,
-            phantom: PhantomData,
-        }
+// TODO: add a compile-time constraint for DIM1 <= DIM2
+impl<'a, T, Ordering: MatrixOrdering, const DIM1: usize, const DIM2: usize>
+    From<&'a GpuTensor<T, DIM1>> for GpuTensorView<'a, T, Ordering, DIM2>
+{
+    fn from(val: &'a GpuTensor<T, DIM1>) -> Self {
+        val.as_embedded_view()
     }
 }
 
@@ -282,13 +380,13 @@ impl<'a, T, const DIM: usize> From<&'a GpuTensor<T, DIM>> for GpuTensorView<'a, 
 /// This is typically useful to extract a single matrix or column from a tensor. Note that,
 /// currently, two elements from the same rows are required to be consecutive (row stride = 1).
 #[derive(Copy, Clone)]
-pub struct GpuTensorView<'a, T, const DIM: usize> {
+pub struct GpuTensorView<'a, T, Ordering, const DIM: usize> {
     view_shape: ViewShape,
     buffer: &'a Buffer,
-    phantom: PhantomData<T>,
+    phantom: PhantomData<(T, Ordering)>,
 }
 
-impl<'a, T, const DIM: usize> GpuTensorView<'a, T, DIM> {
+impl<'a, T, Ordering, const DIM: usize> GpuTensorView<'a, T, Ordering, DIM> {
     /// The view’s shape.
     pub fn shape(&self) -> ViewShape {
         self.view_shape
@@ -310,6 +408,106 @@ impl<'a, T> GpuVectorView<'a, T> {
     pub fn len(&self) -> u32 {
         self.view_shape.size[0]
     }
+
+    pub fn rows(&self, i: u32, nrows: u32) -> Self {
+        assert!(
+            i + nrows <= self.len(),
+            "Rows slice range out of bounds: {}..{}",
+            i,
+            i + nrows
+        );
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, 1, 1],
+                stride: self.view_shape.stride,
+                stride_mat: self.view_shape.stride_mat,
+                offset: self.view_shape.offset + i,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, Ordering> GpuCubeView<'a, T, Ordering> {
+    pub fn matrix(&self, matrix_id: u32) -> GpuMatrixView<'a, T, Ordering> {
+        let [nrows, ncols, nmats] = self.view_shape.size;
+        assert!(matrix_id < nmats);
+
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: self.view_shape.stride,
+                stride_mat: 1,
+                offset: self.view_shape.offset + self.view_shape.stride_mat * matrix_id,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, Ordering> GpuMatrixView<'a, T, Ordering> {
+    pub fn columns(&self, first_col: u32, ncols: u32) -> Self {
+        let nrows = self.view_shape.size[0];
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: self.view_shape.stride,
+                stride_mat: self.view_shape.stride_mat,
+                offset: self.view_shape.offset + self.view_shape.stride * first_col,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn rows(&self, first_row: u32, nrows: u32) -> Self {
+        let ncols = self.view_shape.size[1];
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: self.view_shape.stride,
+                stride_mat: self.view_shape.stride_mat,
+                offset: self.view_shape.offset + first_row,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<T, const DIM: usize> GpuTensor<T, DIM> {
+    pub fn reshape<Ordering: MatrixOrdering, const DIM2: usize>(
+        &self,
+        shape: [u32; DIM2],
+        stride: Option<u32>,
+        stride_mat: Option<u32>,
+    ) -> GpuTensorView<T, Ordering, DIM2> {
+        assert!(shape.iter().product::<u32>() <= self.shape.iter().product::<u32>());
+
+        let mut size = [1; 3];
+        for k in 0..DIM2 {
+            size[k] = shape[k];
+        }
+
+        let default_stride = if Ordering::is_column_major() {
+            shape[0]
+        } else {
+            shape.get(1).copied().unwrap_or(1)
+        };
+
+        GpuTensorView {
+            view_shape: ViewShape {
+                size,
+                stride: stride.unwrap_or(default_stride),
+                stride_mat: stride_mat.unwrap_or(shape[0] * shape.get(1).copied().unwrap_or(1)),
+                offset: 0,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
 }
 
 impl<T> GpuMatrix<T> {
@@ -319,6 +517,13 @@ impl<T> GpuMatrix<T> {
         T: Pod,
     {
         TensorBuilder::matrix(nrows, ncols, usage).build(device)
+    }
+
+    pub fn uninit_encased(device: &Device, nrows: u32, ncols: u32, usage: BufferUsages) -> Self
+    where
+        T: ShaderType,
+    {
+        TensorBuilder::matrix(nrows, ncols, usage).build_uninit_encased(device)
     }
 
     /// Allocates a new matrix on the gpu initialized from `matrix`.
@@ -338,9 +543,51 @@ impl<T> GpuMatrix<T> {
     pub fn column(&self, i: u32) -> GpuVectorView<T> {
         GpuTensorView {
             view_shape: ViewShape {
-                size: [self.shape[0], 1],
+                size: [self.shape[0], 1, 1],
                 stride: 1,
+                stride_mat: 1,
                 offset: self.shape[0] * i,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn slice(&self, (i, j): (u32, u32), (nrows, ncols): (u32, u32)) -> GpuMatrixView<T> {
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: self.shape[0],
+                stride_mat: self.shape[0] * self.shape[1],
+                offset: i + j * nrows,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn columns(&self, first_col: u32, ncols: u32) -> GpuMatrixView<T> {
+        let nrows = self.shape[0];
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: nrows,
+                stride_mat: self.shape[0] * self.shape[1],
+                offset: first_col * nrows,
+            },
+            buffer: &self.buffer,
+            phantom: PhantomData,
+        }
+    }
+
+    pub fn rows(&self, first_row: u32, nrows: u32) -> GpuMatrixView<T> {
+        let ncols = self.shape[1];
+        GpuTensorView {
+            view_shape: ViewShape {
+                size: [nrows, ncols, 1],
+                stride: self.shape[0],
+                stride_mat: self.shape[0] * self.shape[1],
+                offset: first_row,
             },
             buffer: &self.buffer,
             phantom: PhantomData,
@@ -368,6 +615,14 @@ impl<T> GpuVector<T> {
         TensorBuilder::vector(len, usage).build(device)
     }
 
+    /// Allocates a new uninitialized vector on the gpu for `len` elements of type `T`.
+    pub fn uninit_encased(device: &Device, len: u32, usage: BufferUsages) -> Self
+    where
+        T: ShaderType,
+    {
+        TensorBuilder::vector(len, usage).build_uninit_encased(device)
+    }
+
     /// Allocates a new vector on the gpu initialized from `vector`.
     ///
     /// If `T` does not implement `Pod`, use [`GpuMatrix::encase`] instead.
@@ -383,8 +638,9 @@ impl<T> GpuVector<T> {
     pub fn rows(&self, first_row: u32, num_rows: u32) -> GpuVectorView<T> {
         GpuTensorView {
             view_shape: ViewShape {
-                size: [num_rows, 1],
+                size: [num_rows, 1, 1],
                 stride: self.shape[0],
+                stride_mat: self.shape[0],
                 offset: first_row,
             },
             buffer: &self.buffer,
@@ -400,6 +656,13 @@ impl<T> GpuScalar<T> {
         T: Pod,
     {
         TensorBuilder::scalar(usage).build(device)
+    }
+
+    pub fn uninit_encased(device: &Device, usage: BufferUsages) -> Self
+    where
+        T: ShaderType,
+    {
+        TensorBuilder::scalar(usage).build_uninit_encased(device)
     }
 
     /// Allocates a new gpu storage buffer with a single element initialized to `value`.

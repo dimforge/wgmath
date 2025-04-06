@@ -47,6 +47,7 @@ fn test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         let src = format!("{}\n{}", Self::src(), test_kernel);
         let module = Self::composer()
+            .unwrap()
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: &src,
                 file_path: Self::FILE_PATH,

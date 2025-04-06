@@ -1,20 +1,41 @@
 //! Tensor shape definition.
 
+use crate::tensor::MatrixOrdering;
 use dashmap::DashMap;
 use std::sync::Arc;
 use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::{Buffer, BufferUsages, Device};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, bytemuck::Pod, bytemuck::Zeroable)]
-#[repr(C, align(16))]
+#[repr(C)]
 /// The shape of a matrix view over a GPU tensor.
 pub struct ViewShape {
-    /// The view’s number of rows and columns.
-    pub size: [u32; 2],
+    /// The tensor view’s number of rows, columns, and matrices.
+    pub size: [u32; 3],
     /// The view’s column stride (number of elements between two columns).
     pub stride: u32,
+    /// The view’s matrix stride (number of elements between two matrices in the tensor).
+    pub stride_mat: u32,
     /// Index of the first element of the view on the underlying buffer.
     pub offset: u32,
+}
+
+impl ViewShape {
+    /// Converts the shape `self` for a buffer `&[f32]` to a buffer `&[vec4f]`.
+    pub fn f32_to_vec4<Ordering: MatrixOrdering>(self) -> Self {
+        let size = if Ordering::is_column_major() {
+            [self.size[0] / 4, self.size[1], self.size[2]]
+        } else {
+            [self.size[0], self.size[1] / 4, self.size[2]]
+        };
+
+        Self {
+            size,
+            stride: self.stride / 4,
+            stride_mat: self.stride_mat / 4,
+            offset: self.offset / 4,
+        }
+    }
 }
 
 /// A map between a `ViewShape` and an uniform storage `Buffer` containing its value on the gpu.

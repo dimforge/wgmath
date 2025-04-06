@@ -93,8 +93,7 @@ impl OpAssign {
 
 #[cfg(test)]
 mod test {
-    use crate::ops::op_assign::OpAssign;
-    use crate::ops::OpAssignVariant;
+    use super::{OpAssign, OpAssignVariant};
     use nalgebra::DVector;
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::KernelInvocationQueue;
@@ -113,7 +112,7 @@ mod test {
         let gpu = GpuInstance::new().await.unwrap();
 
         for op in ops {
-            let op_assign = OpAssign::new(gpu.device(), op);
+            let op_assign = OpAssign::new(gpu.device(), op).unwrap();
             let mut queue = KernelInvocationQueue::new(gpu.device());
             let mut encoder = gpu.device().create_command_encoder(&Default::default());
 

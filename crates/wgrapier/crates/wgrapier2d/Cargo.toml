@@ -32,7 +32,8 @@ encase = { workspace = true }
 wgcore = { version = "0.2", path = "../../../wgcore" }
 wgebra = { version = "0.2", path = "../../../wgebra" }
 wgparry2d = { version = "0.2", path = "../../../wgparry/crates/wgparry2d" }
-
+rapier2d = "0.23" # TODO: should be behind a feature?
+num-traits = "0.2"
 
 [dev-dependencies]
 nalgebra = { version = "0.33", features = ["rand"] }

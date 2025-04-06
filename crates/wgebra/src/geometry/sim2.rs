@@ -1,5 +1,5 @@
 use crate::WgRot2;
-use nalgebra::Similarity2;
+use nalgebra::{Isometry2, Similarity2};
 use wgcore::Shader;
 
 #[derive(Copy, Clone, PartialEq, Debug, Default, bytemuck::Pod, bytemuck::Zeroable)]
@@ -27,6 +27,15 @@ impl From<Similarity2<f32>> for GpuSim2 {
     fn from(value: Similarity2<f32>) -> Self {
         Self {
             similarity: value,
+            padding: 0.0,
+        }
+    }
+}
+
+impl From<Isometry2<f32>> for GpuSim2 {
+    fn from(value: Isometry2<f32>) -> Self {
+        Self {
+            similarity: Similarity2::from_isometry(value, 1.0),
             padding: 0.0,
         }
     }
@@ -74,6 +83,7 @@ fn test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
 
         let src = format!("{}\n{}", Self::src(), test_kernel);
         let module = Self::composer()
+            .unwrap()
             .make_naga_module(naga_oil::compose::NagaModuleDescriptor {
                 source: &src,
                 file_path: Self::FILE_PATH,

@@ -28,6 +28,7 @@ wgpu = { workspace = true }
 naga_oil = { workspace = true }
 bytemuck = { workspace = true }
 encase = { workspace = true }
+parry3d = { workspace = true }
 
 wgcore = { version = "0.2", path = "../../../wgcore" }
 wgebra = { version = "0.2", path = "../../../wgebra" }
@@ -37,4 +38,3 @@ nalgebra = { version = "0.33", features = ["rand"] }
 futures-test = "0.3"
 serial_test = "3"
 approx = "0.5"
-parry3d = "0.17"
