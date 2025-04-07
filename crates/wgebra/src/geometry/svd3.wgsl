@@ -1,7 +1,9 @@
-// This is a WGSL port of https://github.com/wi-re/tbtSVD/blob/master/source/SVD.h
-
-// which is an implementation of "Computing the Singular Value Decomposition of 3x3 matrices with minimal branching and
-// elementary floating point operations" from http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html
+//! This is a WGSL port of [wi-re/tbtSVD/SVD.h](https://github.com/wi-re/tbtSVD/blob/master/source/SVD.h)
+//!
+//! Which is implementation of "Computing the Singular Value Decomposition of 3x3 matrices with minimal branching and
+//! elementary floating point operations" from [http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html](http://pages.cs.wisc.edu/~sifakis/project_pages/svd.html)
+//!
+//! Multiple lines!
 
 #define_import_path wgebra::svd3
 #import wgebra::quat as Quat
@@ -117,7 +119,7 @@ fn approximateGivensQuaternion(A: ptr<function, Symmetric3x3>) -> givens {
     let g = givens(2.f * ((*A).mxx - (*A).myy), (*A).myx);
     var b = GAMMA * g.sh * g.sh < g.ch * g.ch;
     let w = rsqrt(fma(g.ch, g.ch, g.sh * g.sh));
-    if (w != w) {
+    if w != w {
         b = false;
     }
 
@@ -131,7 +133,7 @@ fn approximateGivensQuaternion(A: ptr<function, Symmetric3x3>) -> givens {
 // Function used to apply a givens rotation S. Calculates the weights and updates the quaternion to contain the cumultative rotation
 fn jacobiConjugation(x: i32, y: i32, z: i32, S: ptr<function, Symmetric3x3>, q: ptr<function, Quat::Quat>) {
     var g = approximateGivensQuaternion(S);
-    let scale = 1.f / fma(g.ch, g.ch, g.sh *  g.sh);
+    let scale = 1.f / fma(g.ch, g.ch, g.sh * g.sh);
     let a = fma(g.ch, g.ch, -g.sh * g.sh) * scale;
     let b = 2.f * g.sh * g.ch * scale;
     var _S = (*S);
@@ -146,7 +148,7 @@ fn jacobiConjugation(x: i32, y: i32, z: i32, S: ptr<function, Symmetric3x3>, q: 
     var tmp = array<f32, 3>( // TODO: why does it have to be `var` instead of `let` so we can index with z?
         (*q).coords[0] * g.sh,
         (*q).coords[1] * g.sh,
-        (*q).coords[2] * g.sh,
+        (*q).coords[2] * g.sh
     );
     g.sh *= (*q).coords[3];
     // (x,y,z) corresponds to ((0,1,2),(1,2,0),(2,0,1)) for (p,q) = ((0,1),(1,2),(0,2))
@@ -269,7 +271,7 @@ fn QRDecomposition(in_B: mat3x3<f32>) -> QR {
 
     let q10 = -2.f * g1.ch * g1.sh * sh22;
     let q11 = fma(-8.f * g1.ch * g2.ch * g3.ch, g1.sh * g2.sh * g3.sh, sh12 * sh32);
-    let q12 = fma(-2.f * g3.ch, g3.sh, 4.f * g1.sh * fma(g3.ch * g1.sh, g3.sh, g1.ch * g2.ch*g2.sh*sh32));
+    let q12 = fma(-2.f * g3.ch, g3.sh, 4.f * g1.sh * fma(g3.ch * g1.sh, g3.sh, g1.ch * g2.ch * g2.sh * sh32));
 
     let q20 = 2.f * g2.ch * g2.sh;
     let q21 = -2.f * g3.ch * sh22 * g3.sh;
