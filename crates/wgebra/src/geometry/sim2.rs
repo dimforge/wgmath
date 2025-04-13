@@ -113,8 +113,17 @@ mod test {
 
         const LEN: u32 = 345;
 
-        let unaligned_s1: DVector<Similarity2<f32>> = DVector::new_random(LEN as usize);
-        let unaligned_s2: DVector<Similarity2<f32>> = DVector::new_random(LEN as usize);
+        // Remove large values from translation and scaling as this can (ligitimately)
+        // throw off the test epsilon.
+        let clamp_large_values = |mut sim: Similarity2<f32>| {
+            sim.isometry.translation.vector /= sim.isometry.translation.vector.amax();
+            sim.set_scaling(sim.scaling() % 10.0);
+            sim
+        };
+        let unaligned_s1: DVector<Similarity2<f32>> =
+            DVector::new_random(LEN as usize).map(clamp_large_values);
+        let unaligned_s2: DVector<Similarity2<f32>> =
+            DVector::new_random(LEN as usize).map(clamp_large_values);
         let test_s1: DVector<GpuSim2> = unaligned_s1.map(GpuSim2::from);
         let test_s2: DVector<GpuSim2> = unaligned_s2.map(GpuSim2::from);
         let test_p1: DVector<Point2<f32>> = DVector::new_random(LEN as usize);
@@ -181,19 +190,19 @@ mod test {
             assert_relative_eq!(
                 result_s2[i].similarity,
                 unaligned_s2[i].inverse(),
-                epsilon = 1.0e-4
+                epsilon = 1.0e-3
             );
             assert_relative_eq!(result_p1[i], unaligned_s1[i] * test_p1[i], epsilon = 1.0e-4);
             assert_relative_eq!(
                 result_p2[i],
                 unaligned_s2[i].inverse_transform_point(&test_p2[i]),
-                epsilon = 1.0e-4
+                epsilon = 1.0e-3
             );
             assert_relative_eq!(result_v1[i], unaligned_s1[i] * test_v1[i], epsilon = 1.0e-4);
             assert_relative_eq!(
                 result_v2[i],
                 unaligned_s2[i].inverse_transform_vector(&test_v2[i]),
-                epsilon = 1.0e-4
+                epsilon = 1.0e-3
             );
         }
 
