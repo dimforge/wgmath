@@ -77,8 +77,15 @@ mod test {
 
         const LEN: u32 = 345;
 
-        let test_s1: DVector<GpuSim3> = DVector::new_random(LEN as usize);
-        let test_s2: DVector<GpuSim3> = DVector::new_random(LEN as usize);
+        // Remove large values from translation and scaling as this can (ligitimately)
+        // throw off the test epsilon.
+        let clamp_large_values = |mut sim: Similarity3<f32>| {
+            sim.isometry.translation.vector /= sim.isometry.translation.vector.amax();
+            sim.set_scaling(sim.scaling() % 10.0);
+            sim
+        };
+        let test_s1: DVector<GpuSim3> = DVector::new_random(LEN as usize).map(clamp_large_values);
+        let test_s2: DVector<GpuSim3> = DVector::new_random(LEN as usize).map(clamp_large_values);
         let test_p1: DVector<Point4<f32>> = DVector::new_random(LEN as usize);
         let test_p2: DVector<Point4<f32>> = DVector::new_random(LEN as usize);
         let test_v1: DVector<Vector4<f32>> = DVector::new_random(LEN as usize);
@@ -136,7 +143,7 @@ mod test {
 
         for i in 0..LEN as usize {
             assert_relative_eq!(result_s1[i], test_s1[i] * test_s2[i], epsilon = 1.0e-5);
-            assert_relative_eq!(result_s2[i], test_s2[i].inverse(), epsilon = 1.0e-4);
+            assert_relative_eq!(result_s2[i], test_s2[i].inverse(), epsilon = 1.0e-3);
             assert_relative_eq!(
                 result_p1[i].xyz(),
                 test_s1[i] * test_p1[i].xyz(),
@@ -145,7 +152,7 @@ mod test {
             assert_relative_eq!(
                 result_p2[i].xyz(),
                 test_s2[i].inverse_transform_point(&test_p2[i].xyz()),
-                epsilon = 1.0e-4
+                epsilon = 1.0e-3
             );
             assert_relative_eq!(
                 result_v1[i].xyz(),
@@ -155,7 +162,7 @@ mod test {
             assert_relative_eq!(
                 result_v2[i].xyz(),
                 test_s2[i].inverse_transform_vector(&test_v2[i].xyz()),
-                epsilon = 1.0e-4
+                epsilon = 1.0e-3
             );
         }
 

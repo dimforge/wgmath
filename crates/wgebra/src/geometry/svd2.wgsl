@@ -8,7 +8,7 @@ struct Svd {
     Vt: mat2x2<f32>,
 };
 
-// Computes the SVD of a 3x3 matrix.
+// Computes the SVD of a 2x2 matrix.
 fn svd(m: mat2x2<f32>) -> Svd {
     let e = (m.x.x + m.y.y) * 0.5;
     let f = (m.x.x - m.y.y) * 0.5;

@@ -26,6 +26,7 @@ pub mod re_exports {
         compose::{ComposableModuleDescriptor, Composer, ComposerError, NagaModuleDescriptor},
     };
     pub use notify;
+    pub use paste;
     pub use wgpu::{self, Device};
 }
 
@@ -42,36 +43,38 @@ macro_rules! test_shader_compilation {
     };
 
     ($ty: ident, $wgcore: ident, $shader_defs: expr) => {
-        #[cfg(test)]
-        mod test {
-            use super::$ty;
-            use naga_oil::compose::NagaModuleDescriptor;
-            use $wgcore::Shader;
-            use $wgcore::gpu::GpuInstance;
-            use $wgcore::utils;
+        $wgcore::re_exports::paste::paste! {
+            #[cfg(test)]
+            mod [<test_shader_compiles_ $ty>] {
+                use super::$ty;
+                use naga_oil::compose::NagaModuleDescriptor;
+                use $wgcore::Shader;
+                use $wgcore::gpu::GpuInstance;
+                use $wgcore::utils;
 
-            #[futures_test::test]
-            #[serial_test::serial]
-            async fn shader_compiles() {
-                // Add a dumb entry point for testing.
-                let src = format!(
-                    "{}
-                        @compute @workgroup_size(1, 1, 1)
-                        fn macro_generated_test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {{}}
-                    ",
-                    $ty::src()
-                );
-                let gpu = GpuInstance::new().await.unwrap();
-                let module = $ty::composer()
-                    .unwrap()
-                    .make_naga_module(NagaModuleDescriptor {
-                        source: &src,
-                        file_path: $ty::FILE_PATH,
-                        shader_defs: $shader_defs,
-                        ..Default::default()
-                    })
-                    .unwrap();
-                let _ = utils::load_module(gpu.device(), "macro_generated_test", module);
+                #[futures_test::test]
+                #[serial_test::serial]
+                async fn shader_compiles() {
+                    // Add a dumb entry point for testing.
+                    let src = format!(
+                        "{}
+                            @compute @workgroup_size(1, 1, 1)
+                            fn macro_generated_test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {{}}
+                        ",
+                        $ty::src()
+                    );
+                    let gpu = GpuInstance::new().await.unwrap();
+                    let module = $ty::composer()
+                        .unwrap()
+                        .make_naga_module(NagaModuleDescriptor {
+                            source: &src,
+                            file_path: $ty::FILE_PATH,
+                            shader_defs: $shader_defs,
+                            ..Default::default()
+                        })
+                        .unwrap();
+                    let _ = utils::load_module(gpu.device(), "macro_generated_test", module);
+                }
             }
         }
     };

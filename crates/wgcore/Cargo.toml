@@ -26,6 +26,8 @@ wgcore-derive = { version = "0.2", path = "../wgcore-derive", optional = true }
 dashmap = "5"
 notify = { version = "7" } # , optional = true }
 
+# For test_shader_compilation
+paste = "1"
 
 [dev-dependencies]
 nalgebra = { version = "0.33", features = ["rand"] }
