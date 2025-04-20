@@ -56,10 +56,9 @@ impl WgSymmetricEigen4 {
 
 #[cfg(test)]
 mod test {
-    use super::{GpuSymmetricEigen4, GpuSymmetricTridiag4};
-    use crate::WgSymmetricEigen4;
+    use super::GpuSymmetricEigen4;
     use approx::{assert_relative_eq, relative_eq};
-    use nalgebra::{DVector, Matrix4, SymmetricTridiagonal};
+    use nalgebra::{DVector, Matrix4};
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;

@@ -2,6 +2,7 @@ use nalgebra::{Matrix2, Vector2};
 use wgcore::Shader;
 #[cfg(test)]
 use {
+    crate::utils::WgTrig,
     naga_oil::compose::NagaModuleDescriptor,
     wgpu::{ComputePipeline, Device},
 };

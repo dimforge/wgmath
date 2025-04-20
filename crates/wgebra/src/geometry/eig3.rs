@@ -1,6 +1,6 @@
 use crate::utils::WgMinMax;
 use crate::{WgRot2, WgSymmetricEigen2};
-use nalgebra::{Matrix3, Vector2, Vector3};
+use nalgebra::{Matrix3, Vector3};
 use wgcore::{test_shader_compilation, Shader};
 #[cfg(test)]
 use {
@@ -18,19 +18,6 @@ pub struct GpuSymmetricEigen3 {
     pub eigenvalues: Vector3<f32>,
 }
 
-#[derive(Copy, Clone, Debug, encase::ShaderType)]
-#[repr(C)]
-/// GPU representation of a symmetric 3x3 matrix tridiagonalization.
-struct GpuSymmetricTridiag3 {
-    /// The diagonal.
-    pub diag: Matrix3<f32>,
-    /// The off-diagonal elements.
-    ///
-    /// Only the first three elements (xyz) are meaningful. The fourth
-    /// only exists for alignment wrt. the gpu representation.
-    pub off_diag: Vector2<f32>,
-}
-
 #[derive(Shader)]
 #[shader(derive(WgMinMax, WgSymmetricEigen2, WgRot2), src = "eig3.wgsl")]
 /// Shader for computing the Singular Value Decomposition of 3x3 matrices.
@@ -46,13 +33,10 @@ impl WgSymmetricEigen3 {
  var<storage, read_write> in: array<mat3x3<f32>>;
  @group(0) @binding(1)
  var<storage, read_write> out: array<SymmetricEigen>;
- @group(0) @binding(2)
- var<storage, read_write> out_tridiag: array<Tridiag>;
 
  @compute @workgroup_size(1, 1, 1)
  fn test(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
      let i = invocation_id.x;
-     out_tridiag[i] = tridiagonalize(in[i]);
      out[i] = symmetric_eigen(in[i]);
  }
         "#;
@@ -72,10 +56,9 @@ impl WgSymmetricEigen3 {
 
 #[cfg(test)]
 mod test {
-    use super::{GpuSymmetricEigen3, GpuSymmetricTridiag3};
-    use crate::WgSymmetricEigen3;
+    use super::GpuSymmetricEigen3;
     use approx::{assert_relative_eq, relative_eq};
-    use nalgebra::{DVector, Matrix3, SymmetricTridiagonal};
+    use nalgebra::{DVector, Matrix3};
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;
@@ -106,47 +89,22 @@ mod test {
             BufferUsages::MAP_READ | BufferUsages::COPY_DST,
         );
 
-        let result_tridiag: GpuVector<GpuSymmetricTridiag3> = GpuVector::uninit_encased(
-            gpu.device(),
-            matrices.len() as u32,
-            BufferUsages::STORAGE | BufferUsages::COPY_SRC,
-        );
-        let staging_tridiag: GpuVector<GpuSymmetricTridiag3> = GpuVector::uninit_encased(
-            gpu.device(),
-            matrices.len() as u32,
-            BufferUsages::MAP_READ | BufferUsages::COPY_DST,
-        );
-
         // Dispatch the test.
         let mut pass = encoder.compute_pass("test", None);
         KernelDispatch::new(gpu.device(), &mut pass, &svd)
-            .bind0([inputs.buffer(), result.buffer(), result_tridiag.buffer()])
+            .bind0([inputs.buffer(), result.buffer()])
             .dispatch(matrices.len() as u32);
         drop(pass); // Ensure the pass is ended before the encoder is borrowed again.
 
         staging.copy_from_encased(&mut encoder, &result);
-        staging_tridiag.copy_from_encased(&mut encoder, &result_tridiag);
         gpu.queue().submit(Some(encoder.finish()));
 
         // Check the result is correct.
         let gpu_result = staging.read_encased(gpu.device()).await.unwrap();
-        let gpu_tridiag = staging_tridiag.read_encased(gpu.device()).await.unwrap();
         let mut allowed_fails = 0;
 
-        for ((m, eigen), tridiag) in matrices
-            .iter()
-            .zip(gpu_result.iter())
-            .zip(gpu_tridiag.iter())
-        {
-            let na_tridiag = SymmetricTridiagonal::new(*m).unpack();
-            println!(
-                "tridiag: diag: {:?}, off_diag: {:?}",
-                tridiag.diag, tridiag.off_diag
-            );
-            println!("tridiag (na): diag: {:?}", SymmetricTridiagonal::new(*m));
+        for (m, eigen) in matrices.iter().zip(gpu_result.iter()) {
             println!("eig: (gpu) {:?}", eigen);
-            let cpu_eigen = WgSymmetricEigen3::run_cpu(*m);
-            println!("eig (cpu): {:?}", cpu_eigen);
             println!("eig (na):      {:?}", m.symmetric_eigen());
 
             let reconstructed = eigen.eigenvectors

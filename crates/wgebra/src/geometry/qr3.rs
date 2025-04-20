@@ -53,9 +53,8 @@ impl WgQR3 {
 #[cfg(test)]
 mod test {
     use super::GpuQR3;
-    use crate::WgQR3;
     use approx::{assert_relative_eq, relative_eq};
-    use nalgebra::{DVector, Matrix3, SymmetricTridiagonal};
+    use nalgebra::{DVector, Matrix3};
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;
@@ -69,8 +68,7 @@ mod test {
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: usize = 345;
-        let mut matrices: DVector<Matrix3<f32>> = DVector::new_random(LEN);
-
+        let matrices: DVector<Matrix3<f32>> = DVector::new_random(LEN);
         let inputs = GpuVector::encase(gpu.device(), &matrices, BufferUsages::STORAGE);
         let result: GpuVector<GpuQR3> = GpuVector::uninit_encased(
             gpu.device(),
