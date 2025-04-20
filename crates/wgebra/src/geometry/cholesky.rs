@@ -41,7 +41,7 @@ test_shader_compilation!(WgCholesky4);
 mod test {
     use approx::assert_relative_eq;
     use naga_oil::compose::Composer;
-    use nalgebra::{DVector, Matrix2, Matrix3, Matrix4, Matrix4x3};
+    use nalgebra::{DVector, Matrix2, Matrix4, Matrix4x3};
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;

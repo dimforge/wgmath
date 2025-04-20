@@ -11,8 +11,6 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 wgpu = { workspace = true }
 bytemuck = { workspace = true }
-anyhow = { workspace = true }
-async-channel = { workspace = true }
 naga_oil = { workspace = true }
 nalgebra = { workspace = true }
 encase = { workspace = true, features = ["nalgebra"] }
@@ -24,4 +22,3 @@ nalgebra = { version = "0.33", features = ["rand"] }
 futures-test = "0.3"
 serial_test = "3"
 approx = "0.5"
-async-std = { version = "1", features = ["attributes"] }

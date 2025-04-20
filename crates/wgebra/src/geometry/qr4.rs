@@ -53,9 +53,8 @@ impl WgQR4 {
 #[cfg(test)]
 mod test {
     use super::GpuQR4;
-    use crate::WgQR4;
     use approx::{assert_relative_eq, relative_eq};
-    use nalgebra::{DVector, Matrix4, SymmetricTridiagonal};
+    use nalgebra::{DVector, Matrix4};
     use wgcore::gpu::GpuInstance;
     use wgcore::kernel::{CommandEncoderExt, KernelDispatch};
     use wgcore::tensor::GpuVector;
@@ -69,8 +68,7 @@ mod test {
         let mut encoder = gpu.device().create_command_encoder(&Default::default());
 
         const LEN: usize = 345;
-        let mut matrices: DVector<Matrix4<f32>> = DVector::new_random(LEN);
-
+        let matrices: DVector<Matrix4<f32>> = DVector::new_random(LEN);
         let inputs = GpuVector::init(gpu.device(), &matrices, BufferUsages::STORAGE);
         let result: GpuVector<GpuQR4> = GpuVector::uninit(
             gpu.device(),
