@@ -8,6 +8,8 @@ use wgcore::Shader;
 /// [`wgcore::shapes::ViewShape`].
 pub struct Shape;
 
+/// Shader definitions setting the `ROW_MAJOR` boolean macro for shaders supporting conditional
+/// compilation for switching row-major and column-major matrix handling.
 pub fn row_major_shader_defs() -> HashMap<String, ShaderDefValue> {
     [("ROW_MAJOR".to_string(), ShaderDefValue::Bool(true))].into()
 }

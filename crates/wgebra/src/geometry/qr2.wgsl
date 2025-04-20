@@ -1,8 +1,13 @@
 #define_import_path wgebra::qr2
 
-// The QR decomposition of a 2x2 matrix.
+/// The QR decomposition of a 2x2 matrix.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#qr)
+/// documentation for details on the QR decomposition.
 struct QR {
+    /// The QR decomposition’s 2x2 unitary matrix.
     q: mat2x2<f32>,
+    /// The QR decomposition’s 2x2 upper-triangular matrix.
     r: mat2x2<f32>
 }
 

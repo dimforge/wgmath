@@ -1,12 +1,17 @@
 #define_import_path wgebra::qr4
 
-// The QR decomposition of a 4x4 matrix.
+/// The QR decomposition of a 4x4 matrix.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#qr) documentation
+/// for details on the QR decomposition.
 struct QR {
+    /// The QR decomposition’s 4x4 unitary matrix.
     q: mat4x4<f32>,
+    /// The QR decomposition’s 4x4 upper-triangular matrix.
     r: mat4x4<f32>
 }
 
-// Computes the QR decomposition of a 4x4 matrix.
+/// Computes the QR decomposition of a 4x4 matrix.
 fn qr(x: mat4x4<f32>) -> QR {
     const DIM = 4;
     var m = x;

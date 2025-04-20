@@ -8,25 +8,34 @@ use wgpu::{ComputePass, ComputePipeline, Device};
 
 #[derive(Shader)]
 #[shader(derive(Shape), src = "gemm.wgsl", composable = false)]
-/// Shader for computing the product of a matrix and a vector.
+/// Shader for computing the product of two matrices.
 pub struct Gemm {
-    /// The compute pipeline for `matrix * vector`.
+    /// The compute pipeline for `matrix1 * matrix2`.
     pub gemm: ComputePipeline,
+    /// A compute pipeline for `matrix1 * matrix2` leveraging workgroup reduction.
     pub gemm_fast: ComputePipeline,
+    /// The compute pipeline for `transpose(matrix1) * matrix2`.
     pub gemm_tr: ComputePipeline,
+    /// A compute pipeline for `transpose(matrix1) * matrix2` leveraging workgroup reduction.
     pub gemm_tr_fast: ComputePipeline,
 }
 
+/// Variants used to select the specific kernel to dispatch from the [`Gemm`] shader.
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GemmVariant {
+    /// The compute pipeline for `matrix1 * matrix2`.
     Gemm,
+    /// A compute pipeline for `matrix1 * matrix2` leveraging workgroup reduction.
     GemmFast,
+    /// The compute pipeline for `transpose(matrix1) * matrix2`.
     GemmTr,
+    /// A compute pipeline for `transpose(matrix1) * matrix2` leveraging workgroup reduction.
     GemmTrFast,
 }
 
 impl Gemm {
-    /// Dispatch this shader to compute `out = m * v`.
+    /// Dispatch this shader to compute `out = m1 * m2`.
     pub fn dispatch<'a, 'b, T: Pod>(
         &'a self,
         device: &Device,
@@ -39,7 +48,7 @@ impl Gemm {
         self.dispatch_generic(device, shapes, pass, out, m1, m2, GemmVariant::Gemm)
     }
 
-    /// Dispatch this shader to compute `out = tr(m) * v`.
+    /// Dispatch this shader to compute `out = tr(m1) * m2`.
     pub fn dispatch_tr<'a, 'b, T: Pod>(
         &'a self,
         device: &Device,
@@ -52,6 +61,7 @@ impl Gemm {
         self.dispatch_generic(device, shapes, pass, out, m1, m2, GemmVariant::GemmTr)
     }
 
+    /// Dispatches the matrix-vector multiplication variant indicated by the given [`GemmVariant`].
     pub fn dispatch_generic<'a, 'b, T: Pod>(
         &'a self,
         device: &Device,

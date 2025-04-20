@@ -10,16 +10,19 @@ use {
 #[derive(Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 /// GPU representation of a symmetric 2x2 matrix eigendecomposition.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#eigendecomposition-of-a-hermitian-matrix)
+/// documentation for details on the eigendecomposition
 pub struct GpuSymmetricEigen2 {
     /// Eigenvectors of the matrix.
     pub eigenvectors: Matrix2<f32>,
-    /// Singular values.
+    /// Eigenvalues of the matrix.
     pub eigenvalues: Vector2<f32>,
 }
 
 #[derive(Shader)]
 #[shader(src = "eig2.wgsl")]
-/// Shader for computing the Singular Value Decomposition of 2x2 matrices.
+/// Shader for computing the eigendecomposition of symmetric 2x2 matrices.
 pub struct WgSymmetricEigen2;
 
 impl WgSymmetricEigen2 {

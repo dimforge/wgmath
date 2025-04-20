@@ -9,8 +9,13 @@ use {
 #[derive(Copy, Clone, Debug, encase::ShaderType)]
 #[repr(C)]
 /// GPU representation of a 3x3 matrix QR decomposition.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#qr)
+/// documentation for details on the QR decomposition.
 pub struct GpuQR3 {
+    /// The QR decomposition’s 3x3 unitary matrix.
     pub q: Matrix3<f32>,
+    /// The QR decomposition’s 3x3 upper-triangular matrix.
     pub r: Matrix3<f32>,
 }
 

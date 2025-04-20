@@ -28,18 +28,31 @@ fn substitute4(src: &str) -> String {
 
 macro_rules! gpu_output_types(
     ($GpuPermutation: ident, $GpuLU: ident, $R: literal, $C: literal, $Perm: literal) => {
+        /// Structure describing a permutation sequence applied by the LU decomposition.
         #[derive(ShaderType, Copy, Clone, PartialEq)]
         #[repr(C)]
         pub struct $GpuPermutation {
+            /// First permutation indices (row `ia[i]` is permuted with row`ib[i]`].
             pub ia: SVector<u32, $Perm>,
+            /// Second permutation indices (row `ia[i]` is permuted with row`ib[i]`].
             pub ib: SVector<u32, $Perm>,
+            /// The number of permutations in `self`. Only the first `len` elements of
+            /// [`Self::ia`] and [`Self::ib`] need to be taken into account.
             pub len: u32,
         }
 
+        /// GPU representation of a matrix LU decomposition (with partial pivoting).
+        ///
+        /// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#lu-with-partial-or-full-pivoting) documentation
+        /// for details on the LU decomposition.
         #[derive(ShaderType, Copy, Clone, PartialEq)]
         #[repr(C)]
         pub struct $GpuLU {
+            /// The LU decomposition where both lower and upper-triangular matrices are stored
+            /// in the same matrix. In particular the diagonal full of `1` of the lower-triangular
+            /// matrix isn’t stored explicitly.
             pub lu: SMatrix<f32, $R, $C>,
+            /// The row permutations applied during the decomposition.
             pub p: $GpuPermutation,
         }
     }
@@ -52,17 +65,17 @@ gpu_output_types!(GpuPermutations4, GpuLU4, 4, 4, 4);
 // TODO: rectangular matrices
 #[derive(Shader)]
 #[shader(src = "lu.wgsl", src_fn = "substitute2")]
-/// Shader for computing the Cholesky decomposition of a symmetric-definite-positive 2x2 matrix.
+/// Shader for computing the LU decomposition of a 2x2 matrix.
 pub struct WgLU2;
 
 #[derive(Shader)]
 #[shader(src = "lu.wgsl", src_fn = "substitute3")]
-/// Shader for computing the Cholesky decomposition of a symmetric-definite-positive 2x2 matrix.
+/// Shader for computing the LU decomposition of a 3x3 matrix.
 pub struct WgLU3;
 
 #[derive(Shader)]
 #[shader(src = "lu.wgsl", src_fn = "substitute4")]
-/// Shader for computing the Cholesky decomposition of a symmetric-definite-positive 2x2 matrix.
+/// Shader for computing the LU decomposition of a 4x4 matrix.
 pub struct WgLU4;
 
 test_shader_compilation!(WgLU2);

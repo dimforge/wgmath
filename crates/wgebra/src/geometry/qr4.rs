@@ -9,8 +9,13 @@ use {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 /// GPU representation of a 4x4 matrix QR decomposition.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#qr) documentation
+/// for details on the QR decomposition.
 pub struct GpuQR4 {
+    /// The QR decomposition’s 4x4 unitary matrix.
     pub q: Matrix4<f32>,
+    /// The QR decomposition’s 4x4 upper-triangular matrix.
     pub r: Matrix4<f32>,
 }
 
