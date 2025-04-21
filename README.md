@@ -11,22 +11,29 @@
 
 -----
 
-**wgmath** is a set of [Rust](https://www.rust-lang.org/) libraries exposing re-usable GPU shaders for scientific
-computing including:
+**wgmath** is a set of [Rust](https://www.rust-lang.org/) libraries exposing
+re-usable [WebGPU](https://www.w3.org/TR/WGSL/) shaders for scientific computing including:
 
-- Linear algebra with the **wgebra** crate.
-- AI (Large Language Models) with the **wgml** crate.
-- Collision-detection with the **wgparry2d** and **wgparry3d** crates (still very WIP).
-- Rigid-body physics with the **wgrapier2d** and **wgrapier3d** crates( (still very WIP).
-- Non-rigid physics with the **.
-  By targeting WebGPU, these libraries run on most GPUs, including on mobile and on the web. It aims to promote open and
-  cross-platform GPU computing for scientific applications, a field currently strongly dominated by proprietary
-  solutions (like CUDA).
+- The [**wgcore** crate](https://github.com/dimforge/wgmath/tree/main/crates/wgcore), a centerpiece of the **wgmath**
+  ecosystem, exposes a set of proc-macros to facilitate sharing and composing shaders across Rust libraries.
+- Linear algebra with the [**wgebra** crate](https://github.com/dimforge/wgmath/tree/main/crates/wgebra).
+- AI (Large Language Models) with the [**wgml** crate](https://github.com/dimforge/wgml/tree/main).
+- Collision-detection with the
+  [**wgparry2d** and **wgparry3d**](https://github.com/dimforge/wgmath/tree/main/crates/wgparry) crates (still very
+  WIP).
+- Rigid-body physics with the
+  [**wgrapier2d** and **wgrapier3d**](https://github.com/dimforge/wgmath/tree/main/crates/wgrapier3d) crates (still very
+  WIP).
 
-All of the libraries are still under heavy development and might be lacking some important features. Contributions are
-welcome!
+By targeting WebGPU, these libraries run on most GPUs, including on mobile and on the web. It aims to promote open and
+cross-platform GPU computing for scientific applications, a field currently strongly dominated by proprietary
+solutions (like CUDA).
 
-In particular, the **wgcore** crate part of the **wgmath** ecosystem exposes a set of proc-macros to facilitate sharing
-and composing shaders across Rust libraries.
+⚠️ All these libraries are still under heavy development and might be lacking some important features. Contributions
+are welcome!
 
-See the readme of each individual crate (on the `crates` directory) for additional details.
+----
+
+**See the readme of each individual crate (on the `crates` directory) for additional details.**
+
+----
