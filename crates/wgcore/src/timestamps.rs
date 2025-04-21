@@ -1,7 +1,7 @@
 //! A convenient wrapper for handling gpu timestamps.
 //!
 //! Note that this is strongly inspired from wgpu’s timestamp queries example:
-//! https://github.com/gfx-rs/wgpu/blob/trunk/examples/src/timestamp_queries/mod.rs
+//! <https://github.com/gfx-rs/wgpu/blob/trunk/examples/src/timestamp_queries/mod.rs>
 
 use wgpu::{BufferAsyncError, ComputePass, ComputePassTimestampWrites, Device, QuerySet, Queue};
 

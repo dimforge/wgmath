@@ -132,8 +132,8 @@ impl<'a, 'encoder> KernelDispatch<'a, 'encoder> {
         self
     }
 
-    /// Queues the kernel invocation into the `queue` that was given to
-    /// [`KernelInvocationQueue::new`].
+    /// Queues the kernel invocation into the compute pass that was given to
+    /// [`KernelDispatch::new`].
     ///
     /// The invocation will be configured with the given `workgroups` size (typically specified as
     /// a single `u32` or a `[u32; 3]`).
@@ -147,8 +147,8 @@ impl<'a, 'encoder> KernelDispatch<'a, 'encoder> {
         }
     }
 
-    /// Queues the indirect kernel invocation into the `queue` that was given to
-    /// [`KernelInvocationQueue::new`].
+    /// Queues the indirect kernel invocation into the compute pass that was given to
+    /// [`KernelDispatch::new`].
     ///
     /// The invocation will be configured with an indirect `workgroups` size specified with a
     /// `Buffer` that must contain exactly one instance of [`wgpu::util::DispatchIndirectArgs`].

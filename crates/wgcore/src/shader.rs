@@ -56,7 +56,8 @@ impl ShaderRegistry {
 /// This trait serves as the basis for the shader compatibility feature of `wgcore`. If the
 /// implementor of this trait is a struct and has no fields of type other than `ComputePipeline`,
 /// thin this trait can be automatically derive using the `Shader` proc-macro:
-/// ```.ignore
+///
+/// ```no_run
 /// #[derive(Shader)]
 /// #[shader(src = "compose_dependency.wgsl")]
 /// struct ComposableShader;
