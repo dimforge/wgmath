@@ -4,6 +4,13 @@
 //       - DIM: the matrix dimension (e.g. `2` for 2x2 matrices).
 //       - MAT: the matrix type (e.g. `mat2x2<f32>` for a 2x2 matrix).
 //       - IMPORT_PATH: the `define_import_path` path.
+
+/// Computes the Cholesky decomposition of the given matrix.
+///
+/// The decomposition’s result is stored in the lower-triangular part of the output matrix.
+///
+/// For additional information on the Cholesky decomposition, see the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#cholesky-decomposition)
+/// documentation.
 fn cholesky(x: MAT) -> MAT {
     var m = x;
 

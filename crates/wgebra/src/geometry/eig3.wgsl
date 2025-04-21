@@ -4,9 +4,14 @@
 #import wgebra::eig2 as Eig2
 #import wgebra::min_max as MinMax
 
-// The SVD of a 3x3 matrix.
+// The eigendecomposition of a symmetric 3x3 matrix.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#eigendecomposition-of-a-hermitian-matrix)
+/// documentation for details on the eigendecomposition.
 struct SymmetricEigen {
+    /// Eigenvectors of the matrix.
     eigenvectors: mat3x3<f32>,
+    /// Eigenvalues of the matrix.
     eigenvalues: vec3<f32>,
 }
 
@@ -15,7 +20,7 @@ struct Tridiag {
     off_diag: vec2<f32>
 }
 
-// Computes the SVD of a 3x3 matrix.
+// Computes the eigendecomposition of a symmetric 4x4 matrix.
 fn symmetric_eigen(x: mat3x3<f32>) -> SymmetricEigen {
     const DIM: u32 = 3;
     const EPS: f32 = 1.1920929e-7;

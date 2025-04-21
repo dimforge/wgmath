@@ -28,6 +28,7 @@ pub struct WgSvd3;
 
 impl WgSvd3 {
     #[cfg(test)]
+    #[doc(hidden)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"
 @group(0) @binding(0)

@@ -26,6 +26,7 @@ pub struct WgSvd2;
 
 impl WgSvd2 {
     #[cfg(test)]
+    #[doc(hidden)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"
  @group(0) @binding(0)

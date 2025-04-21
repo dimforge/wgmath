@@ -11,21 +11,25 @@ use {
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 #[repr(C)]
 /// GPU representation of a symmetric 4x4 matrix eigendecomposition.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#eigendecomposition-of-a-hermitian-matrix)
+/// documentation for details on the eigendecomposition
 pub struct GpuSymmetricEigen4 {
     /// Eigenvectors of the matrix.
     pub eigenvectors: Matrix4<f32>,
-    /// Singular values.
+    /// Eigenvalues of the matrix.
     pub eigenvalues: Vector4<f32>,
 }
 
 #[derive(Shader)]
 #[shader(derive(WgMinMax, WgSymmetricEigen2, WgRot2), src = "eig4.wgsl")]
-/// Shader for computing the Singular Value Decomposition of 4x4 matrices.
+/// Shader for computing the eigendecomposition of symmetric 4x4 matrices.
 pub struct WgSymmetricEigen4;
 
 test_shader_compilation!(WgSymmetricEigen4);
 
 impl WgSymmetricEigen4 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"

@@ -11,21 +11,25 @@ use {
 #[derive(Copy, Clone, Debug, encase::ShaderType)]
 #[repr(C)]
 /// GPU representation of a symmetric 3x3 matrix eigendecomposition.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#eigendecomposition-of-a-hermitian-matrix)
+/// documentation for details on the eigendecomposition
 pub struct GpuSymmetricEigen3 {
     /// Eigenvectors of the matrix.
     pub eigenvectors: Matrix3<f32>,
-    /// Singular values.
+    /// Eigenvalues of the matrix.
     pub eigenvalues: Vector3<f32>,
 }
 
 #[derive(Shader)]
 #[shader(derive(WgMinMax, WgSymmetricEigen2, WgRot2), src = "eig3.wgsl")]
-/// Shader for computing the Singular Value Decomposition of 3x3 matrices.
+/// Shader for computing the eigendecomposition of symmetric 3x3 matrices.
 pub struct WgSymmetricEigen3;
 
 test_shader_compilation!(WgSymmetricEigen3);
 
 impl WgSymmetricEigen3 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"

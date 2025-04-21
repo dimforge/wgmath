@@ -8,23 +8,31 @@
 //       - MAT: the matrix type (e.g. `mat2x2<f32>` for a 2x2 matrix).
 //       - IMPORT_PATH: the `define_import_path` path.
 
+/// Structure describing a permutation sequence applied by the LU decomposition.
 struct Permutations {
-    /// First permutation index.
+    /// First permutation indices (row `ia[i]` is permuted with row`ib[i]`].
     ia: PERM,
-    /// Second permutation index.
+    /// Second permutation indices (row `ia[i]` is permuted with row`ib[i]`].
     ib: PERM,
-    /// The number of cative permutations.
+    /// The number of permutations in `self`. Only the first `len` elements of
+    /// [`Self::ia`] and [`Self::ib`] need to be taken into account.
     len: u32
 }
 
+/// GPU representation of a matrix LU decomposition (with partial pivoting).
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#lu-with-partial-or-full-pivoting) documentation
+/// for details on the LU decomposition.
 struct LU {
-    /// The LU decomposition.
+    /// The LU decomposition where both lower and upper-triangular matrices are stored
+    /// in the same matrix. In particular the diagonal full of `1` of the lower-triangular
+    /// matrix isn’t stored explicitly.
     lu: MAT,
-    /// The row permutations applied during pivoting.
+    /// The row permutations applied during the decomposition.
     p: Permutations
 }
 
-
+/// Computse the LU decomposition of the matrix.
 fn lu(x: MAT) -> LU {
     let min_nrows_ncols = min(NROWS, NCOLS);
     var p = Permutations();

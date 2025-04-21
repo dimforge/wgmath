@@ -47,6 +47,7 @@ impl From<Isometry2<f32>> for GpuSim2 {
 pub struct WgSim2;
 
 impl WgSim2 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &wgpu::Device) -> wgpu::ComputePipeline {
         let test_kernel = r#"

@@ -12,16 +12,24 @@ use wgpu::{ComputePass, ComputePipeline, Device};
 pub struct Gemv {
     /// The compute pipeline for `matrix * vector`.
     pub gemv: ComputePipeline,
+    /// A compute pipeline for `matrix * vector` leveraging workgroup reduction.
     pub gemv_fast: ComputePipeline,
+    /// The compute pipeline for `transpose(matrix) * vector`.
     pub gemv_tr: ComputePipeline,
+    /// A compute pipeline for `transpose(matrix) * vector` leveraging workgroup reduction.
     pub gemv_tr_fast: ComputePipeline,
 }
 
+/// Variants used to select the specific kernel to dispatch from the [`Gemv`] shader.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum GemvVariant {
+    /// Multiplication of a vector by a matrix.
     Gemv,
+    /// An optimized version for multiplication of a vector by a matrix.
     GemvFast,
+    /// Multiplication of a vector by a transposed matrix.
     GemvTr,
+    /// An optimized version for multiplication of a vector by a transposed matrix.
     GemvTrFast,
 }
 
@@ -52,6 +60,7 @@ impl Gemv {
         self.dispatch_generic(device, shapes, pass, out, m, v, GemvVariant::GemvTr)
     }
 
+    /// Dispatches the matrix-vector multiplication variant indicated by the given [`GemvVariant`].
     pub fn dispatch_generic<'a, 'b, T: Pod>(
         &'a self,
         device: &Device,

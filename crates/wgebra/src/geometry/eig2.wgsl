@@ -1,12 +1,17 @@
 #define_import_path wgebra::eig2
 
-// The SVD of a 2x2 matrix.
+// The eigendecomposition of a symmetric 2x2 matrix.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack/#eigendecomposition-of-a-hermitian-matrix)
+/// documentation for details on the eigendecomposition.
 struct SymmetricEigen {
+    /// Eigenvectors of the matrix.
     eigenvectors: mat2x2<f32>,
+    /// Eigenvalues of the matrix.
     eigenvalues: vec2<f32>,
 };
 
-// Computes the SVD of a 2x2 matrix.
+// Computes the eigendecomposition of a symmetric 2x2 matrix.
 fn symmetric_eigen(m: mat2x2<f32>) -> SymmetricEigen {
     let a = m.x.x;
     let c = m.x.y;

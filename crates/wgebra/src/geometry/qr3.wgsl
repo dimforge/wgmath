@@ -1,12 +1,17 @@
 #define_import_path wgebra::qr3
 
-// The QR decomposition of a 3x3 matrix.
+/// The QR decomposition of a 3x3 matrix.
+///
+/// See the [nalgebra](https://nalgebra.rs/docs/user_guide/decompositions_and_lapack#qr)
+/// documentation for details on the QR decomposition.
 struct QR {
+    /// The QR decomposition’s 3x3 unitary matrix.
     q: mat3x3<f32>,
+    /// The QR decomposition’s 3x3 upper-triangular matrix.
     r: mat3x3<f32>
 }
 
-// Computes the QR decomposition of a 3x3 matrix.
+/// Computes the QR decomposition of a 3x3 matrix.
 fn qr(x: mat3x3<f32>) -> QR {
     const DIM = 3;
     var m = x;
