@@ -29,6 +29,7 @@ pub struct WgSymmetricEigen4;
 test_shader_compilation!(WgSymmetricEigen4);
 
 impl WgSymmetricEigen4 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"

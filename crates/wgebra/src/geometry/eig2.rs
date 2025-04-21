@@ -26,6 +26,7 @@ pub struct GpuSymmetricEigen2 {
 pub struct WgSymmetricEigen2;
 
 impl WgSymmetricEigen2 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"

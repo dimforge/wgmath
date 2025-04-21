@@ -11,6 +11,7 @@ pub type GpuSim3 = Similarity3<f32>;
 pub struct WgSim3;
 
 impl WgSim3 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &wgpu::Device) -> wgpu::ComputePipeline {
         let test_kernel = r#"

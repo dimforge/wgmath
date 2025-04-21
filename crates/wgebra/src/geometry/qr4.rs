@@ -27,6 +27,7 @@ pub struct WgQR4;
 test_shader_compilation!(WgQR4);
 
 impl WgQR4 {
+    #[doc(hidden)]
     #[cfg(test)]
     pub fn tests(device: &Device) -> ComputePipeline {
         let test_kernel = r#"
