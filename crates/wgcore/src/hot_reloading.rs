@@ -40,7 +40,7 @@ impl HotReloadState {
     ///
     /// Once this call completes, the [`Self::file_changed`] method can be used to check if a
     /// particular file (assuming it was added to the watch list with [`Self::watch_file`]) has
-    /// changed since the last time [`Self::updated_changes`] was called.
+    /// changed since the last time [`Self::update_changes`] was called.
     pub fn update_changes(&mut self) {
         for changed in self.file_changed.values_mut() {
             *changed = false;
