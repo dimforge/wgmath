@@ -71,6 +71,7 @@ async fn main() -> anyhow::Result<()> {
     KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
         .bind0([a_buf.buffer(), b_buf.buffer()])
         .dispatch(LEN.div_ceil(64));
+    drop(pass);
     gpu.queue().submit(Some(encoder.finish()));
 
     Ok(())

@@ -29,13 +29,13 @@ fn symmetric_eigen(x: mat3x3<f32>) -> SymmetricEigen {
     let m_amax = MinMax::amax3x3(x);
 
     if m_amax != 0.0 {
-        m.x /= m_amax;
-        m.y /= m_amax;
-        m.z /= m_amax;
+        m[0] /= m_amax;
+        m[1] /= m_amax;
+        m[2] /= m_amax;
     }
 
     let tridiag = tridiagonalize(m);
-    var diag = vec3(tridiag.m.x.x, tridiag.m.y.y, tridiag.m.z.z);
+    var diag = vec3(tridiag.m[0].x, tridiag.m[1].y, tridiag.m[2].z);
     // NOTE: SymmetricTridiagonal::unpack takes the modulus off_diag.
     //       So, here we take the absolute value.
     var off_diag = abs(tridiag.off_diag);

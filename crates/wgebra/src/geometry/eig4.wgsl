@@ -29,14 +29,14 @@ fn symmetric_eigen(x: mat4x4<f32>) -> SymmetricEigen {
     let m_amax = MinMax::amax4x4(x);
 
     if m_amax != 0.0 {
-        m.x /= m_amax;
-        m.y /= m_amax;
-        m.z /= m_amax;
-        m.w /= m_amax;
+        m[0] /= m_amax;
+        m[1] /= m_amax;
+        m[2] /= m_amax;
+        m[3] /= m_amax;
     }
 
     let tridiag = tridiagonalize(m);
-    var diag = vec4(tridiag.m.x.x, tridiag.m.y.y, tridiag.m.z.z, tridiag.m.w.w);
+    var diag = vec4(tridiag.m[0].x, tridiag.m[1].y, tridiag.m[2].z, tridiag.m[3].w);
     // NOTE: SymmetricTridiagonal::unpack takes the modulus off_diag.
     //       So, here we take the absolute value.
     var off_diag = abs(tridiag.off_diag);

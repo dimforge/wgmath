@@ -69,6 +69,7 @@ async fn main() -> anyhow::Result<()> {
                     KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
                         .bind0([buffer.buffer()])
                         .dispatch(1);
+                    drop(pass);
 
                     // Copy the result to the staging buffer.
                     staging.copy_from(&mut encoder, &buffer);

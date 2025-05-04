@@ -78,6 +78,7 @@ async fn main() -> anyhow::Result<()> {
                     KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
                         .bind0([buffer.buffer()])
                         .dispatch(LEN.div_ceil(64));
+                    drop(pass);
                     // Resolve the timestamp queries.
                     timestamps.resolve(&mut encoder);
                     gpu.queue().submit(Some(encoder.finish()));

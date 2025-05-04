@@ -186,12 +186,12 @@ struct SortedSingularValues {
 // NOTE: doing this through pointers to B and fails with an internal error in naga
 //       when trying to swap their columns.
 fn sortSingularValues(B: mat3x3<f32>, V: mat3x3<f32>) -> SortedSingularValues {
-    var bx = B.x;
-    var by = B.y;
-    var bz = B.z;
-    var vx = V.x;
-    var vy = V.y;
-    var vz = V.z;
+    var bx = B[0];
+    var by = B[1];
+    var bz = B[2];
+    var vx = V[0];
+    var vy = V[1];
+    var vz = V[2];
     var rho1 = dot(bx, bx);
     var rho2 = dot(by, by);
     var rho3 = dot(bz, bz);
@@ -232,13 +232,13 @@ fn QRDecomposition(in_B: mat3x3<f32>) -> QR {
     var B = in_B;
 
     // first givens rotation (ch,0,0,sh)
-    let g1 = QRGivensQuaternion(B.x.x, B.x.y);
+    let g1 = QRGivensQuaternion(B[0].x, B[0].y);
     var a = fma(-2.f, g1.sh * g1.sh, 1.f);
     var b = 2.f * g1.ch * g1.sh;
     // apply B = Q' * B
-    var r00 = fma(a, B.x.x, b * B.x.y);  var r01 = fma(a, B.y.x, b * B.y.y);	var r02 = fma(a, B.z.x, b * B.z.y);
-    var r10 = fma(-b, B.x.x, a * B.x.y); var r11 = fma(-b, B.y.x, a * B.y.y);	var r12 = fma(-b, B.z.x, a * B.z.y);
-    var r20 = B.x.z;					 var r21 = B.y.z;						var r22 = B.z.z;
+    var r00 = fma(a, B[0].x, b * B[0].y);  var r01 = fma(a, B[1].x, b * B[1].y);	var r02 = fma(a, B[2].x, b * B[2].y);
+    var r10 = fma(-b, B[0].x, a * B[0].y); var r11 = fma(-b, B[1].x, a * B[1].y);	var r12 = fma(-b, B[2].x, a * B[2].y);
+    var r20 = B[0].z;					 var r21 = B[1].z;						var r22 = B[2].z;
     // second givens rotation (ch,0,-sh,0)
     let g2 = QRGivensQuaternion(r00, r20);
     a = fma(-2.f, g2.sh * g2.sh, 1.f);
@@ -293,20 +293,20 @@ fn QRDecomposition(in_B: mat3x3<f32>) -> QR {
 fn svd(A: mat3x3<f32>) -> Svd {
     let ata = transpose(A) * A;
     let ata_sym = Symmetric3x3(
-        ata.x.x,
-        ata.x.y, ata.y.y,
-        ata.x.z, ata.y.z, ata.z.z
+        ata[0].x,
+        ata[0].y, ata[1].y,
+        ata[0].z, ata[1].z, ata[2].z
     );
     let V = Quat::toMatrix(jacobiEigenanalysis(ata_sym));
     let B = A * V;
     let sorted = sortSingularValues(B, V);
     let qr = QRDecomposition(sorted.B);
-    let S = vec3(qr.R.x.x, qr.R.y.y, qr.R.z.z);
+    let S = vec3(qr.R[0].x, qr.R[1].y, qr.R[2].z);
     return Svd(qr.Q, S, transpose(sorted.V));
 }
 
 // Rebuilds the matrix this svd is the decomposition of.
 fn recompose(svd: Svd) -> mat3x3<f32> {
-    let U_S = mat3x3(svd.U.x * svd.S.x, svd.U.y * svd.S.y, svd.U.z * svd.S.z);
+    let U_S = mat3x3(svd.U[0] * svd.S.x, svd.U[1] * svd.S.y, svd.U[2] * svd.S.z);
     return U_S * svd.Vt;
 }

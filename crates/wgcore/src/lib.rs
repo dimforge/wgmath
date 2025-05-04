@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 // #![warn(missing_docs)]
+#![allow(clippy::result_large_err)]
 
 pub mod composer;
 pub mod gpu;

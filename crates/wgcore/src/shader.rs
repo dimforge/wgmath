@@ -7,7 +7,7 @@ use std::any::TypeId;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use wgpu::naga::Module;
-use wgpu::{Device, Label, ShaderModule};
+use wgpu::{Device, Label, ShaderModule, ShaderRuntimeChecks};
 
 /// The global shader registry used by various auto-implemented method of `Shader` for loading the
 /// shader.
@@ -57,7 +57,7 @@ impl ShaderRegistry {
 /// implementor of this trait is a struct and has no fields of type other than `ComputePipeline`,
 /// thin this trait can be automatically derive using the `Shader` proc-macro:
 ///
-/// ```no_run
+/// ```ignore
 /// #[derive(Shader)]
 /// #[shader(src = "compose_dependency.wgsl")]
 /// struct ComposableShader;
@@ -85,10 +85,15 @@ pub trait Shader: Sized + 'static {
 
     /// The [`ShaderModule`] built from this shader.
     fn shader_module(device: &wgpu::Device, label: Label) -> Result<ShaderModule, ComposerError> {
-        Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
-            label,
-            source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(Self::naga_module()?)),
-        }))
+        Ok(unsafe {
+            device.create_shader_module_trusted(
+                wgpu::ShaderModuleDescriptor {
+                    label,
+                    source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(Self::naga_module()?)),
+                },
+                ShaderRuntimeChecks::unchecked(),
+            )
+        })
     }
 
     /// Add to `composer` the composable module definition of `Self` (if there are any) and all its
