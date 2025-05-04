@@ -98,6 +98,7 @@ async fn run_kernel(gpu: &GpuInstance, kernel: &WgKernel) -> Vec<MyStruct> {
     KernelDispatch::new(gpu.device(), &mut pass, &kernel.main)
         .bind0([a_buf.buffer(), b_buf.buffer()])
         .dispatch(LEN.div_ceil(64));
+    drop(pass);
 
     // Copy the result to the staging buffer.
     staging.copy_from(&mut encoder, &a_buf);

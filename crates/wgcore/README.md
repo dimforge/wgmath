@@ -23,7 +23,7 @@ declare composable shaders very concisely. For example, if the WGSL sources are 
 `./shader_sources.wgsl` relative to the `.rs` source file, all that’s needed for it to be composable
 is to `derive` she `Shader` trait:
 
-```rust no_run
+```rust ignore
 #[derive(Shader)]
 #[shader(src = "shader_source.wgsl")]
 struct MyShader1;
@@ -32,7 +32,7 @@ struct MyShader1;
 Then it becomes immediately importable (assuming the `.wgsl` source itself contains a
 `#define_import_path` statement) from another shader with the `shader(derive)` attribute:
 
-```rust no_run
+```rust ignore
 #[derive(Shader)]
 #[shader(
     derive(MyShader1), // This shader depends on the `MyShader1` shader.
@@ -44,7 +44,7 @@ struct MyShader2;
 Finally, if we want to use these shaders from another one which contains a kernel entry-point,
 it is possible to declare `ComputePipeline` fields on the struct deriving `Shader`:
 
-```rust no_run
+```rust ignore
 #[derive(Shader)]
 #[shader(
     derive(MyShader1, MyShader2),
@@ -73,7 +73,7 @@ The `Shader` proc-macro allows some customizations of the imported shaders:
   shaders. in particular, this **must** be specified if the shader sources doesn’t contain any
   `#define_import_path` statement.
 
-```rust no_run
+```rust ignore
 #[derive(Shader)]
 #[shader(
     derive(MyShader1, MyShader2),

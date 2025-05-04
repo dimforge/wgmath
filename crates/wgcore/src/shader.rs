@@ -57,7 +57,7 @@ impl ShaderRegistry {
 /// implementor of this trait is a struct and has no fields of type other than `ComputePipeline`,
 /// thin this trait can be automatically derive using the `Shader` proc-macro:
 ///
-/// ```no_run
+/// ```ignore
 /// #[derive(Shader)]
 /// #[shader(src = "compose_dependency.wgsl")]
 /// struct ComposableShader;
