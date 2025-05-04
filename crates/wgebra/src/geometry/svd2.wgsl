@@ -10,10 +10,10 @@ struct Svd {
 
 // Computes the SVD of a 2x2 matrix.
 fn svd(m: mat2x2<f32>) -> Svd {
-    let e = (m.x.x + m.y.y) * 0.5;
-    let f = (m.x.x - m.y.y) * 0.5;
-    let g = (m.x.y + m.y.x) * 0.5;
-    let h = (m.x.y - m.y.x) * 0.5;
+    let e = (m[0].x + m[1].y) * 0.5;
+    let f = (m[0].x - m[1].y) * 0.5;
+    let g = (m[0].y + m[1].x) * 0.5;
+    let h = (m[0].y - m[1].x) * 0.5;
     let q = sqrt(e * e + h * h);
     let r = sqrt(f * f + g * g);
 
@@ -41,6 +41,6 @@ fn svd(m: mat2x2<f32>) -> Svd {
 
 // Rebuilds the matrix this svd is the decomposition of.
 fn recompose(svd: Svd) -> mat2x2<f32> {
-    let U_S = mat2x2(svd.U.x * svd.S.x, svd.U.y * svd.S.y);
+    let U_S = mat2x2(svd.U[0] * svd.S.x, svd.U[1] * svd.S.y);
     return U_S * svd.Vt;
 }

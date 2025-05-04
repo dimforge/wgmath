@@ -67,10 +67,10 @@ fn gemm_fast(
         if local_id.x == 0u {
             let i_out = Shape::it(shape_out, workgroup_id.x, k, workgroup_id.y);
             let mat = sketch[0];
-            out[i_out] = mat.x;
-            out[i_out + shape_out.stride] = mat.y;
-            out[i_out + shape_out.stride * 2] = mat.z;
-            out[i_out + shape_out.stride * 3] = mat.w;
+            out[i_out] = mat[0];
+            out[i_out + shape_out.stride] = mat[1];
+            out[i_out + shape_out.stride * 2] = mat[2];
+            out[i_out + shape_out.stride * 3] = mat[3];
         }
 
         workgroupBarrier();
@@ -104,10 +104,10 @@ fn gemm(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
 
             let i_out = Shape::it(shape_out, invocation_id.x, k, invocation_id.y);
-            out[i_out] = sum.x;
-            out[i_out + shape_out.stride] = sum.y;
-            out[i_out + shape_out.stride * 2] = sum.z;
-            out[i_out + shape_out.stride * 3] = sum.w;
+            out[i_out] = sum[0];
+            out[i_out + shape_out.stride] = sum[1];
+            out[i_out + shape_out.stride * 2] = sum[2];
+            out[i_out + shape_out.stride * 3] = sum[3];
         }
     }
 }
@@ -139,10 +139,10 @@ fn gemm_tr(@builtin(global_invocation_id) invocation_id: vec3<u32>) {
             }
 
             let i_out = Shape::it(shape_out, invocation_id.x, k, invocation_id.y);
-            out[i_out] = sum.x;
-            out[i_out + shape_out.stride] = sum.y;
-            out[i_out + shape_out.stride * 2] = sum.z;
-            out[i_out + shape_out.stride * 3] = sum.w;
+            out[i_out] = sum[0];
+            out[i_out + shape_out.stride] = sum[1];
+            out[i_out + shape_out.stride * 2] = sum[2];
+            out[i_out + shape_out.stride * 3] = sum[3];
         }
     }
 }
@@ -189,10 +189,10 @@ fn gemm_tr_fast(
         if local_id.x == 0u {
             let i_out = Shape::it(shape_out, workgroup_id.x, k, workgroup_id.y);
             let mat = sketch[0];
-            out[i_out] = mat.x;
-            out[i_out + shape_out.stride] = mat.y;
-            out[i_out + shape_out.stride * 2] = mat.z;
-            out[i_out + shape_out.stride * 3] = mat.w;
+            out[i_out] = mat[0];
+            out[i_out + shape_out.stride] = mat[1];
+            out[i_out + shape_out.stride * 2] = mat[2];
+            out[i_out + shape_out.stride * 3] = mat[3];
         }
 
         workgroupBarrier();

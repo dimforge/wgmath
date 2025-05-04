@@ -10,11 +10,11 @@ resolver = "2"
 nalgebra = { version = "0.33.1", features = ["convert-bytemuck"] }
 parry2d = { version = "0.18", features = ["bytemuck", "encase"] }
 parry3d = { version = "0.18", features = ["bytemuck", "encase"] }
-wgpu = { version = "23", features = ["naga-ir"] }
+wgpu = { version = "24", features = ["naga-ir"] }
 bytemuck = { version = "1", features = ["derive", "extern_crate_std"] }
 anyhow = "1"
 async-channel = "2"
-naga_oil = "0.16"
+naga_oil = "0.17"
 thiserror = "1"
 
 encase = { version = "0.10.0", features = ["nalgebra"] }

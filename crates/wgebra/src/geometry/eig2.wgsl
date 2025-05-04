@@ -13,9 +13,9 @@ struct SymmetricEigen {
 
 // Computes the eigendecomposition of a symmetric 2x2 matrix.
 fn symmetric_eigen(m: mat2x2<f32>) -> SymmetricEigen {
-    let a = m.x.x;
-    let c = m.x.y;
-    let b = m.y.y;
+    let a = m[0].x;
+    let c = m[0].y;
+    let b = m[1].y;
 
     if c == 0.0 {
         return SymmetricEigen(
@@ -39,9 +39,9 @@ fn symmetric_eigen(m: mat2x2<f32>) -> SymmetricEigen {
 }
 
 fn eigenvalues(m: mat2x2<f32>) -> vec2<f32> {
-    let a = m.x.x;
-    let c = m.x.y;
-    let b = m.y.y;
+    let a = m[0].x;
+    let c = m[0].y;
+    let b = m[1].y;
 
     if c == 0.0 {
         return vec2(a, b);
