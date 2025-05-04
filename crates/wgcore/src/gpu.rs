@@ -36,7 +36,8 @@ impl GpuInstance {
                 },
                 None,
             )
-            .await?;
+            .await
+            .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
         Ok(Self {
             _instance: instance,
