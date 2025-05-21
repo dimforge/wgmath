@@ -10,7 +10,7 @@ resolver = "2"
 nalgebra = { version = "0.33.1", features = ["convert-bytemuck"] }
 parry2d = { version = "0.18", features = ["bytemuck", "encase"] }
 parry3d = { version = "0.18", features = ["bytemuck", "encase"] }
-wgpu = { version = "24", features = ["naga-ir"] }
+wgpu = { version = "25", features = ["naga-ir"] }
 bytemuck = { version = "1", features = ["derive", "extern_crate_std"] }
 anyhow = "1"
 async-channel = "2"
@@ -31,3 +31,4 @@ opt-level = 'z'
 parry3d = { git = "https://github.com/dimforge/parry", branch = "encase" }
 parry2d = { git = "https://github.com/dimforge/parry", branch = "encase" }
 encase = { git = "https://github.com/sebcrozet/encase", branch = "nalgebra-points" }
+naga_oil = { git = "https://github.com/bevyengine/naga_oil", rev = "06844280b56bc02e0ac9ad088cf6aa81b8be92fd" }

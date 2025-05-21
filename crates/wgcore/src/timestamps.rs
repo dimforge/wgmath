@@ -189,7 +189,7 @@ impl GpuTimestamps {
         self.destination_buffer
             .slice(..)
             .map_async(wgpu::MapMode::Read, |_| ());
-        device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+        device.poll(wgpu::PollType::Wait);
 
         let timestamps = {
             let timestamp_view = self

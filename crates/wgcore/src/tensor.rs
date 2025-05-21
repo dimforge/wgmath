@@ -306,7 +306,7 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
             buffer_slice.map_async(wgpu::MapMode::Read, move |v| {
                 sender.send_blocking(v).unwrap()
             });
-            device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+            device.poll(wgpu::PollType::wait());
             receiver.recv().await?.unwrap();
         }
         #[cfg(target_arch = "wasm32")]
@@ -315,7 +315,7 @@ impl<T, const DIM: usize> GpuTensor<T, DIM> {
             buffer_slice.map_async(wgpu::MapMode::Read, move |v| {
                 let _ = sender.force_send(v).unwrap();
             });
-            device.poll(wgpu::Maintain::wait()).panic_on_timeout();
+            device.poll(wgpu::PollType::wait());
             receiver.recv().await?.unwrap();
         }
 

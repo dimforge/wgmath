@@ -21,21 +21,19 @@ impl GpuInstance {
                 ..Default::default()
             })
             .await
-            .ok_or_else(|| anyhow::anyhow!("Failed to initialize gpu adapter."))?;
+            .map_err(|_| anyhow::anyhow!("Failed to initialize gpu adapter."))?;
         let (device, queue) = adapter
-            .request_device(
-                &wgpu::DeviceDescriptor {
-                    label: None,
-                    required_features: wgpu::Features::TIMESTAMP_QUERY,
-                    required_limits: wgpu::Limits {
-                        max_buffer_size: 1_000_000_000,
-                        max_storage_buffer_binding_size: 1_000_000_000,
-                        ..Default::default()
-                    },
-                    memory_hints: Default::default(),
+            .request_device(&wgpu::DeviceDescriptor {
+                label: None,
+                required_features: wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::SHADER_F16,
+                required_limits: wgpu::Limits {
+                    max_buffer_size: 1_000_000_000,
+                    max_storage_buffer_binding_size: 1_000_000_000,
+                    ..Default::default()
                 },
-                None,
-            )
+                memory_hints: Default::default(),
+                trace: wgpu::Trace::Off,
+            })
             .await
             .map_err(|e| anyhow::anyhow!("{:?}", e))?;
 
